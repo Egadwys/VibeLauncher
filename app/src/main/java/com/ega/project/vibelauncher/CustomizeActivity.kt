@@ -32,6 +32,10 @@ class CustomizeActivity : AppCompatActivity() {
             }
         }
 
+        val swSearch = findViewById<SwitchMaterial>(R.id.switch_drawer_search)
+        swSearch.isChecked = p.drawerSearch
+        swSearch.setOnCheckedChangeListener { _, on -> p.drawerSearch = on }
+
         val swHaptics = findViewById<SwitchMaterial>(R.id.switch_haptics)
         swHaptics.isChecked = p.haptics
         swHaptics.setOnCheckedChangeListener { _, on -> p.haptics = on }

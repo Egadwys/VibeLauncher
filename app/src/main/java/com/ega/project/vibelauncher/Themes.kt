@@ -37,6 +37,16 @@ object Themes {
         else -> 0xE6101010.toInt()
     }
 
+    /** Panel dock gaya Holo: gelap translusen, sudut membulat (bentuk sama dengan panel kaca). */
+    fun holoPanel(ctx: Context, radiusDp: Float): Drawable {
+        val d = ctx.resources.displayMetrics.density
+        return GradientDrawable().apply {
+            setColor(0x99101010.toInt())
+            cornerRadius = radiusDp * d
+            setStroke((1 * d).toInt().coerceAtLeast(1), 0x5533B5E5)
+        }
+    }
+
     /** Panel kaca: tint translusen + kilau gradien + tepi terang tipis. */
     fun glassPanel(ctx: Context, light: Boolean, radiusDp: Float): Drawable {
         val d = ctx.resources.displayMetrics.density

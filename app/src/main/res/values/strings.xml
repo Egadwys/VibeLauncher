@@ -29,7 +29,7 @@
     <string name="default_launcher_inactive">Tap to set VibeLauncher as the default launcher</string>
     <string name="customize">Customize</string>
     <string name="customize_desc">Theme, grid, dock</string>
-    <string name="theme">Theme</string>
+    <string name="theme">Dock theme</string>
     <string name="theme_holo">Holo (default)</string>
     <string name="theme_glass_dark">Liquid Glass – Dark</string>
     <string name="theme_glass_light">Liquid Glass – Light</string>
@@ -38,4 +38,6 @@
     <string name="dock_full">Dock is full</string>
     <string name="choose_app">Choose app</string>
     <string name="haptics">Haptic feedback</string>
+    <string name="drawer_search">Search bar in app drawer</string>
+    <string name="search_apps">Search apps</string>
 </resources>

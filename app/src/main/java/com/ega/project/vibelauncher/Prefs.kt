@@ -25,7 +25,7 @@ class Prefs(ctx: Context) {
 
     /** Dock dua baris: baris bawah berisi search bar / widget Google Search. */
     var dockTwoRows: Boolean
-        get() = sp.getBoolean("dock_two_rows", false)
+        get() = sp.getBoolean("dock_two_rows", true) // default: dock + search bar
         set(v) = sp.edit().putBoolean("dock_two_rows", v).apply()
 
     /** false = search bar bawaan, true = widget Google Search. */
@@ -36,6 +36,11 @@ class Prefs(ctx: Context) {
     var dockWidgetId: Int
         get() = sp.getInt("dock_widget_id", -1)
         set(v) = sp.edit().putInt("dock_widget_id", v).apply()
+
+    /** Search bar di app drawer (bisa dimatikan di pengaturan). */
+    var drawerSearch: Boolean
+        get() = sp.getBoolean("drawer_search", true)
+        set(v) = sp.edit().putBoolean("drawer_search", v).apply()
 
     var haptics: Boolean
         get() = sp.getBoolean("haptics", true)

@@ -17,7 +17,12 @@ import android.view.HapticFeedbackConstants
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.LayoutInflater
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
@@ -91,7 +96,8 @@ class MainActivity : AppCompatActivity() {
 
     private var apps: List<AppInfo> = emptyList()
     private var appsLoaded = false
-    private var iconsGlass = false
+    private lateinit var drawerSearch: EditText
+    private var suppressSearch = false
     private val executor = Executors.newSingleThreadExecutor()
 
     private val pkgReceiver = object : BroadcastReceiver() {
@@ -119,6 +125,15 @@ class MainActivity : AppCompatActivity() {
         dockSlots = listOf(R.id.dock_slot_0, R.id.dock_slot_1, R.id.dock_slot_2, R.id.dock_slot_3)
             .map { findViewById<ImageView>(it) }
         drawerPager = findViewById(R.id.drawer_pager)
+        drawerSearch = findViewById(R.id.drawer_search)
+        drawerSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: Editable?) { if (!suppressSearch) buildDrawer() }
+        })
+        drawerSearch.setOnEditorActionListener { _, id, _ ->
+            if (id == EditorInfo.IME_ACTION_SEARCH) { drawerResults().firstOrNull()?.let { launch(it) }; true } else false
+        }
         drawerDots = findViewById(R.id.drawer_dots)
         searchTop = findViewById(R.id.search_bar)
         searchDock = findViewById(R.id.search_bar_dock)
@@ -243,16 +258,13 @@ class MainActivity : AppCompatActivity() {
 
     // ---------- data & render ----------
     private fun loadApps() {
-        val glass = Themes.isGlass(prefs.theme)
         executor.execute {
-            val list = AppRepository.load(this, glass)
-            runOnUiThread { apps = list; appsLoaded = true; iconsGlass = glass; renderHome(); renderDock() }
+            val list = AppRepository.load(this, false)
+            runOnUiThread { apps = list; appsLoaded = true; renderHome(); renderDock() }
         }
     }
 
     private fun render() {
-        // Ikon dibentuk ulang kalau tema (kaca / bukan) berubah
-        if (appsLoaded && Themes.isGlass(prefs.theme) != iconsGlass) loadApps()
         applyTheme()
         renderHome()
         renderDock()
@@ -260,65 +272,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- tema ----------
-    private fun blurSupported() =
-        Build.VERSION.SDK_INT >= 31 && try { windowManager.isCrossWindowBlurEnabled } catch (_: Exception) { false }
-
-    /** Blur wallpaper di belakang drawer (Android 12+, kalau perangkat mendukung). */
-    private fun setBlur(on: Boolean) {
-        if (Build.VERSION.SDK_INT < 31) return
-        try {
-            window.setBackgroundBlurRadius(if (on && Themes.isGlass(prefs.theme) && blurSupported()) 80 else 0)
-        } catch (_: Exception) {
-        }
-    }
-
+    /** Tema (Holo / Liquid) hanya berlaku untuk dock. Drawer & elemen lain selalu Holo gelap. */
     private fun applyTheme() {
         val t = prefs.theme
         val glass = Themes.isGlass(t)
         val light = Themes.isLight(t)
         val d = resources.displayMetrics.density
 
-        val searchText = if (light) 0x99000000.toInt() else 0xCCFFFFFF.toInt()
-        for (v in listOf(searchTop, searchDock)) {
-            val tv = v as TextView
-            if (glass) {
-                tv.background = Themes.glassPanel(this, light, 24f)
-                tv.setTextColor(searchText)
-                TextViewCompat.setCompoundDrawableTintList(tv, ColorStateList.valueOf(searchText))
-            } else {
-                tv.setBackgroundResource(R.drawable.bg_search)
-                tv.setTextColor(0xB3FFFFFF.toInt())
-                TextViewCompat.setCompoundDrawableTintList(tv, null)
-            }
+        fun holoSearch(tv: TextView) {
+            tv.setBackgroundResource(R.drawable.bg_search)
+            tv.setTextColor(0xB3FFFFFF.toInt())
+            TextViewCompat.setCompoundDrawableTintList(tv, null)
         }
+        holoSearch(searchTop as TextView)
+        if (glass) { // search bar di dalam dock ikut tema dock
+            val searchText = if (light) 0x99000000.toInt() else 0xCCFFFFFF.toInt()
+            val tv = searchDock as TextView
+            tv.background = Themes.glassPanel(this, light, 24f)
+            tv.setTextColor(searchText)
+            TextViewCompat.setCompoundDrawableTintList(tv, ColorStateList.valueOf(searchText))
+        } else holoSearch(searchDock as TextView)
 
-        // Dock: kaca melayang dengan sudut membulat
+        // Dock: panel melayang bersudut membulat (Holo & Liquid berbagi bentuk yang sama)
         val dock = findViewById<View>(R.id.dock)
         val lp = dock.layoutParams as ViewGroup.MarginLayoutParams
-        if (glass) {
-            val m = (12 * d).toInt()
-            lp.setMargins(m, 0, m, (10 * d).toInt())
-            dock.background = Themes.glassPanel(this, light, 30f)
-        } else {
-            lp.setMargins(0, 0, 0, 0)
-            dock.setBackgroundResource(R.drawable.bg_dock)
-        }
+        val m = (12 * d).toInt()
+        lp.setMargins(m, 0, m, (10 * d).toInt())
         dock.layoutParams = lp
-        findViewById<View>(R.id.dock_divider).visibility = if (glass) View.GONE else View.VISIBLE
+        dock.background = if (glass) Themes.glassPanel(this, light, 30f) else Themes.holoPanel(this, 30f)
+        findViewById<View>(R.id.dock_divider).visibility = View.GONE
 
-        // Drawer
-        val accent = Themes.accent(this, t)
-        drawer.setBackgroundColor(Themes.drawerBg(t, blurSupported()))
+        // Drawer: selalu Holo gelap
+        val accent = Themes.accent(this, Themes.HOLO)
+        drawer.setBackgroundColor(Themes.drawerBg(Themes.HOLO, false))
         findViewById<TextView>(R.id.drawer_title).setTextColor(accent)
         findViewById<View>(R.id.drawer_underline).setBackgroundColor(accent)
-        findViewById<View>(R.id.drawer_divider).setBackgroundColor(
-            if (!glass) ContextCompat.getColor(this, R.color.holo_line) else if (light) 0x33000000 else 0x33FFFFFF
-        )
-        findViewById<TextView>(R.id.drawer_overflow)
-            .setTextColor(if (light) 0xFF1C1C1E.toInt() else 0xFFFFFFFF.toInt())
+        findViewById<View>(R.id.drawer_divider).setBackgroundColor(ContextCompat.getColor(this, R.color.holo_line))
+        findViewById<TextView>(R.id.drawer_overflow).setTextColor(0xFFFFFFFF.toInt())
+        drawerSearch.visibility = if (prefs.drawerSearch) View.VISIBLE else View.GONE
 
         // Bar target drag
-        findViewById<View>(R.id.drag_bar).setBackgroundColor(Themes.dragBarBg(t))
+        findViewById<View>(R.id.drag_bar).setBackgroundColor(Themes.dragBarBg(Themes.HOLO))
         for (id in listOf(R.id.drag_remove, R.id.drag_info, R.id.drag_uninstall))
             findViewById<TextView>(id).setTextColor(accent)
 
@@ -598,7 +592,7 @@ class MainActivity : AppCompatActivity() {
         if (!ok) { drag = null; dragBarWrap.visibility = View.GONE; return }
         if (!p.fromHome) { // home & dock harus terlihat untuk drop
             drawerOpen = false
-            drawer.animate().cancel(); drawer.visibility = View.GONE; setBlur(false)
+            drawer.animate().cancel(); drawer.visibility = View.GONE
             homeLayer.animate().cancel(); homeLayer.alpha = 1f; homeLayer.visibility = View.VISIBLE
             updateSystemBars()
         }
@@ -764,11 +758,11 @@ class MainActivity : AppCompatActivity() {
         if (drawer.visibility == View.VISIBLE) return
         drawerOpen = true
         lastDrawerPage = 0
+        resetDrawerSearch()
         drawer.animate().cancel()
         drawer.alpha = 0f
         drawer.translationY = 60 * resources.displayMetrics.density
         drawer.visibility = View.VISIBLE
-        setBlur(true)
         updateSystemBars()
         drawer.animate().alpha(1f).translationY(0f).setDuration(220).start()
         // Home (termasuk dock) disembunyikan supaya tidak tembus di balik drawer
@@ -787,10 +781,25 @@ class MainActivity : AppCompatActivity() {
         val cellW = w / cols
         val cellH = (cellW * 1.15f).toInt()
         val rows = max(1, h / cellH)
-        val pages = apps.chunked(cols * rows)
-        drawerPager.adapter = DrawerPagerAdapter(pages, cols, cellW, cellH, ::launch, ::showDrawerMenu, ::startDragFromDrawer, prefs.theme)
+        val pages = drawerResults().chunked(cols * rows)
+        drawerPager.adapter = DrawerPagerAdapter(pages, cols, cellW, cellH, ::launch, ::showDrawerMenu, ::startDragFromDrawer, Themes.HOLO)
         drawerPager.setCurrentItem(0, false)
         buildDots(pages.size)
+    }
+
+    /** Daftar app di drawer, disaring oleh search bar (kalau aktif). */
+    private fun drawerResults(): List<AppInfo> {
+        val q = if (prefs.drawerSearch) drawerSearch.text.toString().trim() else ""
+        return if (q.isEmpty()) apps else apps.filter { it.label.contains(q, ignoreCase = true) }
+    }
+
+    private fun resetDrawerSearch() {
+        suppressSearch = true
+        drawerSearch.setText("")
+        suppressSearch = false
+        drawerSearch.clearFocus()
+        (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+            .hideSoftInputFromWindow(drawerSearch.windowToken, 0)
     }
 
     private fun buildDots(n: Int) {
@@ -809,7 +818,7 @@ class MainActivity : AppCompatActivity() {
         for (i in 0 until drawerDots.childCount) {
             drawerDots.getChildAt(i).background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(if (i == selected) Themes.accent(this@MainActivity, prefs.theme) else Themes.dim(prefs.theme))
+                setColor(if (i == selected) Themes.accent(this@MainActivity, Themes.HOLO) else Themes.dim(Themes.HOLO))
             }
         }
     }
@@ -817,6 +826,7 @@ class MainActivity : AppCompatActivity() {
     private fun closeDrawer() {
         if (drawer.visibility != View.VISIBLE || !drawerOpen) return
         drawerOpen = false
+        resetDrawerSearch()
         updateSystemBars()
         homeLayer.animate().cancel()
         homeLayer.visibility = View.VISIBLE
@@ -824,17 +834,16 @@ class MainActivity : AppCompatActivity() {
         drawer.animate().cancel()
         drawer.animate().alpha(0f).translationY(60 * resources.displayMetrics.density)
             .setDuration(180).withEndAction {
-                if (!drawerOpen) { drawer.visibility = View.GONE; setBlur(false) }
+                if (!drawerOpen) { drawer.visibility = View.GONE }
             }.start()
     }
 
     // ---------- status bar ----------
-    /** Ikon status bar gelap hanya saat drawer tema terang terbuka; selain itu putih. */
+    /** Drawer selalu gelap, jadi ikon status bar selalu putih. */
     private fun updateSystemBars() {
-        val lightIcons = drawerOpen && Themes.isLight(prefs.theme)
         val c = WindowInsetsControllerCompat(window, window.decorView)
-        c.isAppearanceLightStatusBars = lightIcons
-        c.isAppearanceLightNavigationBars = lightIcons
+        c.isAppearanceLightStatusBars = false
+        c.isAppearanceLightNavigationBars = false
     }
 
     // ---------- haptic ----------

@@ -29,7 +29,7 @@
     <string name="default_launcher_inactive">Ketuk untuk menjadikan VibeLauncher launcher default</string>
     <string name="customize">Kustomisasi</string>
     <string name="customize_desc">Tema, grid, dock</string>
-    <string name="theme">Tema</string>
+    <string name="theme">Tema dock</string>
     <string name="theme_holo">Holo (default)</string>
     <string name="theme_glass_dark">Liquid Glass – Gelap</string>
     <string name="theme_glass_light">Liquid Glass – Terang</string>
@@ -38,4 +38,6 @@
     <string name="dock_full">Dock penuh</string>
     <string name="choose_app">Pilih aplikasi</string>
     <string name="haptics">Umpan balik haptik</string>
+    <string name="drawer_search">Search bar di laci aplikasi</string>
+    <string name="search_apps">Cari aplikasi</string>
 </resources>
