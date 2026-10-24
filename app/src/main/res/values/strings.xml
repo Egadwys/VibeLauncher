@@ -13,4 +13,15 @@
     <string name="home_columns">Home screen columns: %1$d</string>
     <string name="home_rows">Home screen rows: %1$d</string>
     <string name="drawer_columns">App drawer columns: %1$d</string>
+    <string name="widgets">Widgets</string>
+    <string name="no_widgets">No widgets available</string>
+    <string name="widget_failed">Couldn\'t add widget</string>
+    <string name="google_search_missing">Google Search widget not found, using the built-in search bar</string>
+    <string name="drag_remove">Remove</string>
+    <string name="dock_settings">Dock</string>
+    <string name="dock_two_rows">Two-row dock</string>
+    <string name="dock_two_rows_hint">The second row holds the search bar or a search widget</string>
+    <string name="search_widget">Search widget</string>
+    <string name="search_builtin">Built-in search bar</string>
+    <string name="search_google">Google Search widget</string>
 </resources>

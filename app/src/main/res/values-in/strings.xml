@@ -13,4 +13,15 @@
     <string name="home_columns">Kolom layar utama: %1$d</string>
     <string name="home_rows">Baris layar utama: %1$d</string>
     <string name="drawer_columns">Kolom laci aplikasi: %1$d</string>
+    <string name="widgets">Widget</string>
+    <string name="no_widgets">Tidak ada widget tersedia</string>
+    <string name="widget_failed">Gagal menambah widget</string>
+    <string name="google_search_missing">Widget Google Search tidak ditemukan, memakai search bar bawaan</string>
+    <string name="drag_remove">Hapus</string>
+    <string name="dock_settings">Dock</string>
+    <string name="dock_two_rows">Dock dua baris</string>
+    <string name="dock_two_rows_hint">Baris kedua berisi search bar atau widget pencarian</string>
+    <string name="search_widget">Widget pencarian</string>
+    <string name="search_builtin">Search bar bawaan</string>
+    <string name="search_google">Widget Google Search</string>
 </resources>

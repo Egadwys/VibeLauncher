@@ -77,5 +77,66 @@
             android:valueFrom="3"
             android:valueTo="7" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/dock_settings"
+            android:textAllCaps="true"
+            android:textColor="@color/holo_blue"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/holo_blue" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switch_dock_two_rows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/dock_two_rows"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/dock_two_rows_hint"
+            android:textColor="#99FFFFFF"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/search_widget"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+        <RadioGroup
+            android:id="@+id/group_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <RadioButton
+                android:id="@+id/radio_search_builtin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/search_builtin"
+                android:textColor="#FFFFFF" />
+
+            <RadioButton
+                android:id="@+id/radio_search_google"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/search_google"
+                android:textColor="#FFFFFF" />
+        </RadioGroup>
+
     </LinearLayout>
 </ScrollView>
