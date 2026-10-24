@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VibeLauncher</string>
+    <string name="search">Cari</string>
+    <string name="apps">Aplikasi</string>
+    <string name="settings">Pengaturan</string>
+    <string name="add_to_home">Tambah ke Layar Utama</string>
+    <string name="remove">Hapus dari Layar Utama</string>
+    <string name="app_info">Info aplikasi</string>
+    <string name="uninstall">Copot pemasangan</string>
+    <string name="home_full">Layar utama penuh</string>
+    <string name="grid_settings">Pengaturan grid</string>
+    <string name="home_columns">Kolom layar utama: %1$d</string>
+    <string name="home_rows">Baris layar utama: %1$d</string>
+    <string name="drawer_columns">Kolom laci aplikasi: %1$d</string>
+</resources>
