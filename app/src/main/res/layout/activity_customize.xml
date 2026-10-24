@@ -140,6 +140,15 @@
             android:background="@color/holo_blue" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switch_haptics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/haptics"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switch_dock_two_rows"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

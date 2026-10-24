@@ -5,6 +5,7 @@
     android:layout_height="match_parent">
 
     <LinearLayout
+        android:id="@+id/home_layer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true"
@@ -49,7 +50,7 @@
             android:background="@drawable/bg_dock"
             android:orientation="vertical">
 
-            <!-- Baris 1: telepon, semua aplikasi, browser -->
+            <!-- Baris 1: 2 app, tombol semua aplikasi (tengah), 2 app -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="84dp"
@@ -57,7 +58,15 @@
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:id="@+id/btn_phone"
+                    android:id="@+id/dock_slot_0"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:padding="14dp" />
+
+                <ImageView
+                    android:id="@+id/dock_slot_1"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
@@ -75,7 +84,15 @@
                     android:src="@drawable/ic_apps" />
 
                 <ImageView
-                    android:id="@+id/btn_browser"
+                    android:id="@+id/dock_slot_2"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:padding="14dp" />
+
+                <ImageView
+                    android:id="@+id/dock_slot_3"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"

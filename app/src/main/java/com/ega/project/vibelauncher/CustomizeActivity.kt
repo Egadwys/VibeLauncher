@@ -32,6 +32,10 @@ class CustomizeActivity : AppCompatActivity() {
             }
         }
 
+        val swHaptics = findViewById<SwitchMaterial>(R.id.switch_haptics)
+        swHaptics.isChecked = p.haptics
+        swHaptics.setOnCheckedChangeListener { _, on -> p.haptics = on }
+
         val sw = findViewById<SwitchMaterial>(R.id.switch_dock_two_rows)
         val group = findViewById<RadioGroup>(R.id.group_search)
         fun enableGroup(on: Boolean) {

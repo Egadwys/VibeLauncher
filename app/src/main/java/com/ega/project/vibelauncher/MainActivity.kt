@@ -11,7 +11,9 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.graphics.Rect
+import android.graphics.Color
 import android.view.DragEvent
+import android.view.HapticFeedbackConstants
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.LayoutInflater
@@ -29,6 +31,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.widget.TextViewCompat
 import androidx.core.view.doOnLayout
 import androidx.viewpager2.widget.ViewPager2
@@ -51,14 +55,17 @@ class MainActivity : AppCompatActivity() {
     /** Data yang sedang di-drag (app dari drawer, atau app/widget dari home). */
     private class DragPayload(
         val kind: Int, val key: String, val spanX: Int, val spanY: Int,
-        val fromHome: Boolean, val col: Int = -1, val row: Int = -1
+        val fromHome: Boolean, val col: Int = -1, val row: Int = -1, val dockSlot: Int = -1
     )
 
     private class Pending(val id: Int, val info: AppWidgetProviderInfo, val purpose: Int)
 
     private lateinit var prefs: Prefs
     private lateinit var homeGrid: HomeGridLayout
+    private lateinit var homeLayer: View
     private lateinit var drawer: View
+    private lateinit var dockSlots: List<ImageView>
+    private var drawerOpen = false
     private lateinit var drawerPager: ViewPager2
     private lateinit var drawerDots: LinearLayout
     private lateinit var searchTop: View
@@ -78,6 +85,9 @@ class MainActivity : AppCompatActivity() {
     private var currentPopup: PopupMenu? = null
     private lateinit var gestures: GestureDetector
     private var gestureBlocked = false
+    private var lastDrawerPage = 0
+    private var lastHlCol = -1
+    private var lastHlRow = -1
 
     private var apps: List<AppInfo> = emptyList()
     private var appsLoaded = false
@@ -90,13 +100,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Status bar & navigation bar transparan, konten tergambar di belakangnya
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= 29) {
+            window.isStatusBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = false
+        }
         setContentView(R.layout.activity_main)
         prefs = Prefs(this)
         widgetMgr = AppWidgetManager.getInstance(this)
         widgetHost = LauncherAppWidgetHost(this, HOST_ID)
 
         homeGrid = findViewById(R.id.home_grid)
+        homeLayer = findViewById(R.id.home_layer)
         drawer = findViewById(R.id.drawer)
+        dockSlots = listOf(R.id.dock_slot_0, R.id.dock_slot_1, R.id.dock_slot_2, R.id.dock_slot_3)
+            .map { findViewById<ImageView>(it) }
         drawerPager = findViewById(R.id.drawer_pager)
         drawerDots = findViewById(R.id.drawer_dots)
         searchTop = findViewById(R.id.search_bar)
@@ -108,7 +129,7 @@ class MainActivity : AppCompatActivity() {
         dragInfo = findViewById(R.id.drag_info)
         dragUninstall = findViewById(R.id.drag_uninstall)
 
-        findViewById<View>(R.id.btn_apps).setOnClickListener { openDrawer() }
+        findViewById<View>(R.id.btn_apps).setOnClickListener { haptic(HapticFeedbackConstants.VIRTUAL_KEY); openDrawer() }
         searchTop.setOnClickListener { openSearch() }
         searchDock.setOnClickListener { openSearch() }
         homeGrid.setOnLongClickListener { showHomeMenu(); true } // area kosong
@@ -120,10 +141,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         drawerPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) = updateDots(position)
+            override fun onPageSelected(position: Int) {
+                if (drawerOpen && position != lastDrawerPage) haptic(tickConst())
+                lastDrawerPage = position
+                updateDots(position)
+            }
         })
 
         setupHomeDrag()
+        setupDock()
         gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
                 if (e1 == null) return false
@@ -144,11 +170,6 @@ class MainActivity : AppCompatActivity() {
             if (p.kind == HomeItem.KIND_APP) { uninstall(pkgOf(p.key)); true } else false
         }
 
-        bindDock(R.id.btn_phone, Intent(Intent.ACTION_DIAL))
-        bindDock(
-            R.id.btn_browser,
-            Intent(Intent.ACTION_VIEW, Uri.parse("http://")).addCategory(Intent.CATEGORY_BROWSABLE)
-        )
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = closeDrawer()
@@ -188,7 +209,7 @@ class MainActivity : AppCompatActivity() {
     private fun onVerticalSwipe(up: Boolean) {
         if (drawer.visibility == View.VISIBLE) {
             if (!up) closeDrawer() // swipe turun menutup drawer
-        } else if (up) openDrawer() else expandNotifications()
+        } else if (up) { haptic(gestureConst()); openDrawer() } else { haptic(gestureConst()); expandNotifications() }
     }
 
     private fun expandNotifications() {
@@ -225,7 +246,7 @@ class MainActivity : AppCompatActivity() {
         val glass = Themes.isGlass(prefs.theme)
         executor.execute {
             val list = AppRepository.load(this, glass)
-            runOnUiThread { apps = list; appsLoaded = true; iconsGlass = glass; renderHome() }
+            runOnUiThread { apps = list; appsLoaded = true; iconsGlass = glass; renderHome(); renderDock() }
         }
     }
 
@@ -234,6 +255,7 @@ class MainActivity : AppCompatActivity() {
         if (appsLoaded && Themes.isGlass(prefs.theme) != iconsGlass) loadApps()
         applyTheme()
         renderHome()
+        renderDock()
         applyDock()
     }
 
@@ -300,11 +322,7 @@ class MainActivity : AppCompatActivity() {
         for (id in listOf(R.id.drag_remove, R.id.drag_info, R.id.drag_uninstall))
             findViewById<TextView>(id).setTextColor(accent)
 
-        bindDock(R.id.btn_phone, Intent(Intent.ACTION_DIAL))
-        bindDock(
-            R.id.btn_browser,
-            Intent(Intent.ACTION_VIEW, Uri.parse("http://")).addCategory(Intent.CATEGORY_BROWSABLE)
-        )
+        updateSystemBars()
     }
 
     private fun renderHome() {
@@ -534,6 +552,10 @@ class MainActivity : AppCompatActivity() {
                 DragEvent.ACTION_DRAG_ENTERED, DragEvent.ACTION_DRAG_LOCATION -> {
                     drag?.let {
                         val t = homeGrid.targetCell(e.x, e.y, it.spanX, it.spanY)
+                        if (t[0] != lastHlCol || t[1] != lastHlRow) {
+                            lastHlCol = t[0]; lastHlRow = t[1]
+                            haptic(tickConst())
+                        }
                         homeGrid.showHighlight(t[0], t[1], it.spanX, it.spanY)
                     }
                     true
@@ -564,6 +586,8 @@ class MainActivity : AppCompatActivity() {
         currentPopup = null
         drag = p
         val isApp = p.kind == HomeItem.KIND_APP
+        haptic(HapticFeedbackConstants.LONG_PRESS)
+        lastHlCol = -1; lastHlRow = -1
         dragRemove.visibility = if (p.fromHome) View.VISIBLE else View.GONE
         dragInfo.visibility = if (isApp) View.VISIBLE else View.GONE
         dragUninstall.visibility = if (isApp) View.VISIBLE else View.GONE
@@ -572,18 +596,25 @@ class MainActivity : AppCompatActivity() {
             view, ClipData.newPlainText("vibe", p.key), View.DragShadowBuilder(view), p, 0
         )
         if (!ok) { drag = null; dragBarWrap.visibility = View.GONE; return }
-        if (!p.fromHome) { drawer.animate().cancel(); drawer.visibility = View.GONE; setBlur(false) } // home terlihat untuk drop
+        if (!p.fromHome) { // home & dock harus terlihat untuk drop
+            drawerOpen = false
+            drawer.animate().cancel(); drawer.visibility = View.GONE; setBlur(false)
+            homeLayer.animate().cancel(); homeLayer.alpha = 1f; homeLayer.visibility = View.VISIBLE
+            updateSystemBars()
+        }
     }
 
     private fun showDrawerMenu(anchor: View, app: AppInfo) {
         currentPopup?.dismiss()
         currentPopup = PopupMenu(this, anchor).apply {
             menu.add(0, 1, 0, R.string.add_to_home)
+            menu.add(0, 4, 0, R.string.add_to_dock)
             menu.add(0, 2, 0, R.string.app_info)
             menu.add(0, 3, 0, R.string.uninstall)
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     1 -> addToHome(app)
+                    4 -> addToDock(app)
                     2 -> openAppInfo(app.packageName)
                     3 -> uninstall(app.packageName)
                 }
@@ -597,10 +628,13 @@ class MainActivity : AppCompatActivity() {
         val items = prefs.homeItems()
         if (items.any { it.kind == HomeItem.KIND_APP && it.key == app.key }) { closeDrawer(); return }
         val pos = HomeLayout.findNearest(items, prefs.homeCols, prefs.homeRows, 1, 1, 0, 0)
-        if (pos == null) { toast(R.string.home_full); return }
+        if (pos == null) { haptic(rejectConst()); toast(R.string.home_full); return }
         items.add(HomeItem(HomeItem.KIND_APP, app.key, pos[0], pos[1]))
         prefs.saveHomeItems(items)
+        removeFromDock(app.key) // satu app hanya di satu tempat
+        haptic(confirmConst())
         renderHome()
+        renderDock()
         closeDrawer()
     }
 
@@ -611,6 +645,7 @@ class MainActivity : AppCompatActivity() {
         val p = drag ?: return // dipanggil dari beberapa listener; hanya yang pertama bekerja
         drag = null
         dragBarWrap.visibility = View.GONE
+        dockSlots.forEach { it.background = null }
         if (!dropped && !p.fromHome) openDrawer() // drag dibatalkan -> kembali ke drawer
     }
 
@@ -642,20 +677,26 @@ class MainActivity : AppCompatActivity() {
                 occ.col = existing.col; occ.row = existing.row // tukar posisi dua app
             } else {
                 val pos = HomeLayout.findNearest(others, cols, rows, sx, sy, col, row)
-                if (pos == null) { toast(R.string.home_full); return false }
+                if (pos == null) { haptic(rejectConst()); toast(R.string.home_full); return false }
                 col = pos[0]; row = pos[1]
             }
         }
         if (existing != null) { existing.col = col; existing.row = row }
         else items.add(HomeItem(p.kind, p.key, col, row, sx, sy))
         prefs.saveHomeItems(items)
+        if (p.kind == HomeItem.KIND_APP && removeFromDock(p.key)) renderDock()
+        haptic(confirmConst())
         renderHome()
         return true
     }
 
     private fun removeDragged(p: DragPayload): Boolean {
+        if (p.kind == HomeItem.KIND_APP && removeFromDock(p.key)) {
+            haptic(confirmConst()); renderDock(); return true
+        }
         val items = prefs.homeItems()
         val item = items.firstOrNull { it.kind == p.kind && it.key == p.key } ?: return false
+        haptic(confirmConst())
         removeItem(item, items)
         return true
     }
@@ -690,6 +731,7 @@ class MainActivity : AppCompatActivity() {
     private fun pkgOf(key: String) = ComponentName.unflattenFromString(key)?.packageName ?: key
 
     private fun launch(app: AppInfo) {
+        haptic(HapticFeedbackConstants.VIRTUAL_KEY)
         val i = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
             .setComponent(app.component)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
@@ -707,18 +749,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun bindDock(id: Int, intent: Intent) {
-        val view = findViewById<ImageView>(id)
-        val ri = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
-        if (ri != null && ri.activityInfo.packageName != "android") {
-            val size = (56 * resources.displayMetrics.density).toInt()
-            view.setImageDrawable(IconShaper.shape(resources, ri.loadIcon(packageManager), size, Themes.isGlass(prefs.theme)))
-            view.setOnClickListener {
-                try { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
-            }
-        } else view.visibility = View.INVISIBLE
-    }
-
     private fun openAppInfo(pkg: String) {
         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")))
     }
@@ -732,11 +762,20 @@ class MainActivity : AppCompatActivity() {
     // ---------- drawer (halaman horizontal) ----------
     private fun openDrawer() {
         if (drawer.visibility == View.VISIBLE) return
+        drawerOpen = true
+        lastDrawerPage = 0
+        drawer.animate().cancel()
         drawer.alpha = 0f
         drawer.translationY = 60 * resources.displayMetrics.density
         drawer.visibility = View.VISIBLE
         setBlur(true)
+        updateSystemBars()
         drawer.animate().alpha(1f).translationY(0f).setDuration(220).start()
+        // Home (termasuk dock) disembunyikan supaya tidak tembus di balik drawer
+        homeLayer.animate().cancel()
+        homeLayer.animate().alpha(0f).setDuration(220).withEndAction {
+            if (drawerOpen) homeLayer.visibility = View.INVISIBLE
+        }.start()
         drawerPager.doOnLayout { buildDrawer() }
     }
 
@@ -776,8 +815,202 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun closeDrawer() {
-        if (drawer.visibility != View.VISIBLE) return
+        if (drawer.visibility != View.VISIBLE || !drawerOpen) return
+        drawerOpen = false
+        updateSystemBars()
+        homeLayer.animate().cancel()
+        homeLayer.visibility = View.VISIBLE
+        homeLayer.animate().alpha(1f).setDuration(180).start()
+        drawer.animate().cancel()
         drawer.animate().alpha(0f).translationY(60 * resources.displayMetrics.density)
-            .setDuration(180).withEndAction { drawer.visibility = View.GONE; setBlur(false) }.start()
+            .setDuration(180).withEndAction {
+                if (!drawerOpen) { drawer.visibility = View.GONE; setBlur(false) }
+            }.start()
     }
+
+    // ---------- status bar ----------
+    /** Ikon status bar gelap hanya saat drawer tema terang terbuka; selain itu putih. */
+    private fun updateSystemBars() {
+        val lightIcons = drawerOpen && Themes.isLight(prefs.theme)
+        val c = WindowInsetsControllerCompat(window, window.decorView)
+        c.isAppearanceLightStatusBars = lightIcons
+        c.isAppearanceLightNavigationBars = lightIcons
+    }
+
+    // ---------- haptic ----------
+    private fun haptic(type: Int) {
+        if (!prefs.haptics) return
+        window.decorView.performHapticFeedback(type)
+    }
+
+    private fun tickConst() =
+        if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.SEGMENT_FREQUENT_TICK
+        else HapticFeedbackConstants.CLOCK_TICK
+    private fun confirmConst() =
+        if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY
+    private fun rejectConst() =
+        if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS
+    private fun gestureConst() =
+        if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.GESTURE_START else HapticFeedbackConstants.CLOCK_TICK
+
+    // ---------- dock (4 slot + tombol drawer di tengah) ----------
+    private fun setupDock() {
+        dockSlots.forEachIndexed { i, slot ->
+            slot.setOnDragListener { view, e ->
+                when (e.action) {
+                    DragEvent.ACTION_DRAG_STARTED -> drag?.kind == HomeItem.KIND_APP
+                    DragEvent.ACTION_DRAG_ENTERED -> {
+                        view.background = Themes.glassPanel(this, Themes.isLight(prefs.theme), 18f)
+                        haptic(tickConst()); true
+                    }
+                    DragEvent.ACTION_DRAG_EXITED -> { view.background = null; true }
+                    DragEvent.ACTION_DROP -> { view.background = null; dropOnDock(i) }
+                    DragEvent.ACTION_DRAG_ENDED -> { view.background = null; onDragEnded(e.result); true }
+                    else -> true
+                }
+            }
+        }
+    }
+
+    /** Hapus app dari dock; true kalau ada yang dihapus. */
+    private fun removeFromDock(key: String): Boolean {
+        val dock = prefs.dockApps()
+        val i = dock.indexOf(key)
+        if (i < 0) return false
+        dock[i] = ""
+        prefs.saveDockApps(dock)
+        return true
+    }
+
+    private fun renderDock() {
+        if (!appsLoaded) return
+        if (prefs.dockUnset) initDefaultDock()
+        val byKey = apps.associateBy { it.key }
+        val dock = prefs.dockApps()
+        var dirty = false
+        val light = Themes.isLight(prefs.theme)
+        val d = resources.displayMetrics.density
+        dockSlots.forEachIndexed { i, slot ->
+            val key = dock[i]
+            val app = if (key.isNotEmpty()) byKey[key] else null
+            if (key.isNotEmpty() && app == null) { dock[i] = ""; dirty = true } // sudah di-uninstall
+            if (app != null) {
+                slot.setPadding((14 * d).toInt(), (14 * d).toInt(), (14 * d).toInt(), (14 * d).toInt())
+                slot.setImageDrawable(app.icon)
+                slot.imageTintList = null
+                slot.contentDescription = app.label
+                slot.setOnClickListener { launch(app) }
+                slot.setOnLongClickListener {
+                    startDrag(it, DragPayload(HomeItem.KIND_APP, app.key, 1, 1, true, dockSlot = i)); true
+                }
+            } else {
+                // Slot kosong: tanda "+" samar, ketuk untuk memilih app
+                slot.setPadding((26 * d).toInt(), (26 * d).toInt(), (26 * d).toInt(), (26 * d).toInt())
+                slot.setImageResource(R.drawable.ic_add)
+                slot.imageTintList = ColorStateList.valueOf(if (light) 0x40000000 else 0x40FFFFFF)
+                slot.contentDescription = getString(R.string.add_to_dock)
+                slot.setOnClickListener { haptic(HapticFeedbackConstants.VIRTUAL_KEY); showDockPicker(i) }
+                slot.setOnLongClickListener { showDockPicker(i); true }
+            }
+        }
+        if (dirty) prefs.saveDockApps(dock)
+    }
+
+    /** Pertama kali: isi dock dengan app telepon & browser bawaan (kalau ada), tetap bisa diganti. */
+    private fun initDefaultDock() {
+        val dock = MutableList(Prefs.DOCK_SLOTS) { "" }
+        fun find(intent: Intent): String? {
+            val ri = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY) ?: return null
+            val pkg = ri.activityInfo.packageName
+            if (pkg == "android") return null
+            return apps.firstOrNull { it.packageName == pkg }?.key
+        }
+        find(Intent(Intent.ACTION_DIAL))?.let { dock[0] = it }
+        find(Intent(Intent.ACTION_VIEW, Uri.parse("http://")).addCategory(Intent.CATEGORY_BROWSABLE))
+            ?.let { if (it !in dock) dock[3] = it }
+        prefs.saveDockApps(dock)
+    }
+
+    /** Taruh app di slot. Kalau app sudah ada di dock -> tukar; kalau slot terisi -> app lama pindah ke home. */
+    private fun placeInDock(key: String, slot: Int) {
+        val dock = prefs.dockApps()
+        val old = dock[slot]
+        val from = dock.indexOf(key)
+        if (from == slot) return
+        if (from >= 0) {
+            dock[from] = old
+            dock[slot] = key
+            prefs.saveDockApps(dock)
+        } else {
+            dock[slot] = key
+            prefs.saveDockApps(dock)
+            val items = prefs.homeItems()
+            val inHome = items.firstOrNull { it.kind == HomeItem.KIND_APP && it.key == key }
+            if (inHome != null) items.remove(inHome) // pindah dari home
+            if (old.isNotEmpty()) { // app yang tergeser dikembalikan ke home kalau muat
+                val pos = HomeLayout.findNearest(items, prefs.homeCols, prefs.homeRows, 1, 1, 0, 0)
+                if (pos != null) items.add(HomeItem(HomeItem.KIND_APP, old, pos[0], pos[1]))
+            }
+            prefs.saveHomeItems(items)
+        }
+        haptic(confirmConst())
+        renderHome()
+        renderDock()
+    }
+
+    private fun dropOnDock(slot: Int): Boolean {
+        val p = drag ?: return false
+        if (p.kind != HomeItem.KIND_APP) return false
+        if (p.dockSlot == slot) { // dilepas di slot semula -> menu
+            val anchor = dockSlots[slot]
+            anchor.post { showDockMenu(anchor, p.key) }
+            return true
+        }
+        placeInDock(p.key, slot)
+        return true
+    }
+
+    private fun addToDock(app: AppInfo) {
+        val dock = prefs.dockApps()
+        if (dock.contains(app.key)) { closeDrawer(); return }
+        val slot = dock.indexOfFirst { it.isEmpty() }
+        if (slot < 0) { haptic(rejectConst()); toast(R.string.dock_full); return }
+        placeInDock(app.key, slot)
+        closeDrawer()
+    }
+
+    private fun showDockMenu(anchor: View, key: String) {
+        PopupMenu(this, anchor).apply {
+            menu.add(0, 1, 0, R.string.remove_from_dock)
+            menu.add(0, 2, 0, R.string.app_info)
+            menu.add(0, 3, 0, R.string.uninstall)
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    1 -> { removeFromDock(key); renderDock() }
+                    2 -> openAppInfo(pkgOf(key))
+                    3 -> uninstall(pkgOf(key))
+                }
+                true
+            }
+        }.show()
+    }
+
+    private fun showDockPicker(slot: Int) {
+        if (!appsLoaded || apps.isEmpty()) return
+        val list = apps
+        val adapter = object : ArrayAdapter<AppInfo>(this, R.layout.item_widget, list) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val v = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_widget, parent, false)
+                val a = getItem(position)!!
+                v.findViewById<ImageView>(R.id.widget_icon).setImageDrawable(a.icon)
+                v.findViewById<TextView>(R.id.widget_title).text = a.label
+                v.findViewById<TextView>(R.id.widget_size).visibility = View.GONE
+                return v
+            }
+        }
+        AlertDialog.Builder(this).setTitle(R.string.choose_app)
+            .setAdapter(adapter) { _, i -> placeInDock(list[i].key, slot) }
+            .show()
+    }
+
 }

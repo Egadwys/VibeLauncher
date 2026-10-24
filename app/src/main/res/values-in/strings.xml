@@ -33,4 +33,9 @@
     <string name="theme_holo">Holo (default)</string>
     <string name="theme_glass_dark">Liquid Glass – Gelap</string>
     <string name="theme_glass_light">Liquid Glass – Terang</string>
+    <string name="add_to_dock">Tambah ke Dock</string>
+    <string name="remove_from_dock">Hapus dari Dock</string>
+    <string name="dock_full">Dock penuh</string>
+    <string name="choose_app">Pilih aplikasi</string>
+    <string name="haptics">Umpan balik haptik</string>
 </resources>

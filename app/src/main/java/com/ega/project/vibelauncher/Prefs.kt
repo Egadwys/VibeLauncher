@@ -37,6 +37,35 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("dock_widget_id", -1)
         set(v) = sp.edit().putInt("dock_widget_id", v).apply()
 
+    var haptics: Boolean
+        get() = sp.getBoolean("haptics", true)
+        set(v) = sp.edit().putBoolean("haptics", v).apply()
+
+    /** true kalau dock belum pernah diisi / disimpan (dipakai untuk mengisi default sekali). */
+    val dockUnset: Boolean get() = sp.getString("dock_apps", null) == null
+
+    /** 4 slot dock (kiri 2, kanan 2; tombol drawer di tengah). "" = slot kosong. */
+    fun dockApps(): MutableList<String> {
+        val out = MutableList(DOCK_SLOTS) { "" }
+        val raw = sp.getString("dock_apps", null) ?: return out
+        try {
+            val arr = JSONArray(raw)
+            for (i in 0 until minOf(arr.length(), DOCK_SLOTS)) out[i] = arr.optString(i, "")
+        } catch (_: Exception) {
+        }
+        return out
+    }
+
+    fun saveDockApps(list: List<String>) {
+        val arr = JSONArray()
+        for (i in 0 until DOCK_SLOTS) arr.put(list.getOrElse(i) { "" })
+        sp.edit().putString("dock_apps", arr.toString()).apply()
+    }
+
+    companion object {
+        const val DOCK_SLOTS = 4
+    }
+
     fun homeItems(): MutableList<HomeItem> {
         val out = mutableListOf<HomeItem>()
         val raw = sp.getString("home_items", null)
