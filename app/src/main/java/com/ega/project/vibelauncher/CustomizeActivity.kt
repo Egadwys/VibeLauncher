@@ -1,7 +1,11 @@
 package com.ega.project.vibelauncher
 
 import android.os.Bundle
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.RadioGroup
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.slider.Slider
@@ -16,20 +20,17 @@ class CustomizeActivity : AppCompatActivity() {
         bind(R.id.label_home_rows, R.id.slider_home_rows, R.string.home_rows, p.homeRows) { p.homeRows = it }
         bind(R.id.label_drawer_cols, R.id.slider_drawer_cols, R.string.drawer_columns, p.drawerCols) { p.drawerCols = it }
 
-        val themeGroup = findViewById<RadioGroup>(R.id.group_theme)
-        themeGroup.check(
-            when (p.theme) {
-                Themes.GLASS_DARK -> R.id.radio_theme_glass_dark
-                Themes.GLASS_LIGHT -> R.id.radio_theme_glass_light
-                else -> R.id.radio_theme_holo
-            }
-        )
-        themeGroup.setOnCheckedChangeListener { _, id ->
-            p.theme = when (id) {
-                R.id.radio_theme_glass_dark -> Themes.GLASS_DARK
-                R.id.radio_theme_glass_light -> Themes.GLASS_LIGHT
-                else -> Themes.HOLO
-            }
+        val themeIds = listOf(Themes.HOLO, Themes.GLASS_DARK, Themes.GLASS_LIGHT)
+        val themeNames = listOf(R.string.theme_holo, R.string.theme_glass_dark, R.string.theme_glass_light)
+            .map { getString(it) }
+        val spinner = findViewById<Spinner>(R.id.spinner_theme)
+        spinner.adapter = ArrayAdapter(this, R.layout.spinner_item, themeNames).apply {
+            setDropDownViewResource(R.layout.spinner_dropdown_item)
+        }
+        spinner.setSelection(themeIds.indexOf(p.theme).coerceAtLeast(0))
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, v: View?, pos: Int, id: Long) { p.theme = themeIds[pos] }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         val swSearch = findViewById<SwitchMaterial>(R.id.switch_drawer_search)

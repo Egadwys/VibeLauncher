@@ -228,9 +228,34 @@
             </LinearLayout>
 
             <View
+                android:id="@+id/drawer_spacer"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1" />
+
+            <EditText
+                android:id="@+id/drawer_search"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_search"
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="8dp"
+                android:hint="@string/search_apps"
+                android:imeOptions="actionSearch|flagNoExtractUi"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingStart="12dp"
+                android:paddingTop="0dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="0dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#80FFFFFF"
+                android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/drawer_overflow"
@@ -248,28 +273,6 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/holo_line" />
-
-        <EditText
-            android:id="@+id/drawer_search"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="4dp"
-            android:background="@drawable/bg_search"
-            android:drawableStart="@drawable/ic_search"
-            android:drawablePadding="12dp"
-            android:hint="@string/search_apps"
-            android:imeOptions="actionSearch|flagNoExtractUi"
-            android:importantForAutofill="no"
-            android:inputType="text"
-            android:maxLines="1"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#80FFFFFF"
-            android:textSize="16sp" />
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/drawer_pager"

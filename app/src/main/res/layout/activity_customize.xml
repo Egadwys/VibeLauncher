@@ -27,33 +27,13 @@
             android:layout_marginBottom="8dp"
             android:background="@color/holo_blue" />
 
-        <RadioGroup
-            android:id="@+id/group_theme"
+        <Spinner
+            android:id="@+id/spinner_theme"
+            style="@style/SpinnerPopup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
-
-            <RadioButton
-                android:id="@+id/radio_theme_holo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/theme_holo"
-                android:textColor="#FFFFFF" />
-
-            <RadioButton
-                android:id="@+id/radio_theme_glass_dark"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/theme_glass_dark"
-                android:textColor="#FFFFFF" />
-
-            <RadioButton
-                android:id="@+id/radio_theme_glass_light"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/theme_glass_light"
-                android:textColor="#FFFFFF" />
-        </RadioGroup>
+            android:layout_marginBottom="24dp"
+            android:spinnerMode="dropdown" />
 
         <TextView
             android:layout_width="wrap_content"

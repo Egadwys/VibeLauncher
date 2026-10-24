@@ -28,7 +28,8 @@ import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupMenu
+import androidx.appcompat.widget.PopupMenu
+import android.view.ContextThemeWrapper
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -149,7 +150,7 @@ class MainActivity : AppCompatActivity() {
         searchDock.setOnClickListener { openSearch() }
         homeGrid.setOnLongClickListener { showHomeMenu(); true } // area kosong
         findViewById<View>(R.id.drawer_overflow).setOnClickListener { v ->
-            PopupMenu(this, v).apply {
+            PopupMenu(popupCtx(), v).apply {
                 menu.add(0, 1, 0, R.string.settings)
                 setOnMenuItemClickListener { openSettings(); true }
             }.show()
@@ -310,6 +311,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.drawer_divider).setBackgroundColor(ContextCompat.getColor(this, R.color.holo_line))
         findViewById<TextView>(R.id.drawer_overflow).setTextColor(0xFFFFFFFF.toInt())
         drawerSearch.visibility = if (prefs.drawerSearch) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.drawer_spacer).visibility = if (prefs.drawerSearch) View.GONE else View.VISIBLE
 
         // Bar target drag
         findViewById<View>(R.id.drag_bar).setBackgroundColor(Themes.dragBarBg(Themes.HOLO))
@@ -434,7 +436,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- widget: pilih, bind, konfigurasi ----------
     private fun showHomeMenu() {
         val items = arrayOf(getString(R.string.widgets), getString(R.string.settings))
-        AlertDialog.Builder(this).setItems(items) { _, which ->
+        AlertDialog.Builder(this, dialogRes()).setItems(items) { _, which ->
             if (which == 0) showWidgetPicker() else openSettings()
         }.show()
     }
@@ -453,7 +455,7 @@ class MainActivity : AppCompatActivity() {
             .filter { (it.widgetCategory and AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN) != 0 }
             .sortedBy { it.loadLabel(pm)?.lowercase() ?: "" }
         if (list.isEmpty()) { toast(R.string.no_widgets); return }
-        val adapter = object : ArrayAdapter<AppWidgetProviderInfo>(this, R.layout.item_widget, list) {
+        val adapter = object : ArrayAdapter<AppWidgetProviderInfo>(ContextThemeWrapper(this, dialogRes()), R.layout.item_widget, list) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val v = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_widget, parent, false)
                 val info = getItem(position)!!
@@ -464,7 +466,7 @@ class MainActivity : AppCompatActivity() {
                 return v
             }
         }
-        AlertDialog.Builder(this).setTitle(R.string.widgets)
+        AlertDialog.Builder(this, dialogRes()).setTitle(R.string.widgets)
             .setAdapter(adapter) { _, i -> startBind(list[i], PURPOSE_HOME) }
             .show()
     }
@@ -473,17 +475,19 @@ class MainActivity : AppCompatActivity() {
         try {
             val id = widgetHost.allocateAppWidgetId()
             val p = Pending(id, info, purpose)
-            pending = p
-            if (widgetMgr.bindAppWidgetIdIfAllowed(id, info.provider)) onBound(p)
+            setPending(p)
+            val allowed = widgetMgr.bindAppWidgetIdIfAllowed(id, info.profile, info.provider, null)
+            if (allowed) onBound(p)
             else {
                 val i = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
                     .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
                     .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER_PROFILE, info.profile)
                 @Suppress("DEPRECATION")
                 startActivityForResult(i, REQ_BIND)
             }
-        } catch (_: Exception) {
-            cancelPending()
+        } catch (e: Exception) {
+            cancelPending("bind: ${e.javaClass.simpleName} ${e.message ?: ""}".trim())
         }
     }
 
@@ -491,8 +495,10 @@ class MainActivity : AppCompatActivity() {
         if (p.info.configure != null) {
             try {
                 widgetHost.startAppWidgetConfigureActivityForResult(this, p.id, 0, REQ_CONFIGURE, null)
-            } catch (_: Exception) {
-                cancelPending()
+            } catch (e: Exception) {
+                // Konfigurasi gagal dibuka -> coba tambahkan widget apa adanya
+                if (widgetMgr.getAppWidgetInfo(p.id) != null) finishPending(p)
+                else cancelPending("config: ${e.javaClass.simpleName} ${e.message ?: ""}".trim())
             }
         } else finishPending(p)
     }
@@ -500,23 +506,51 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        val p = pending ?: return
+        if (requestCode != REQ_BIND && requestCode != REQ_CONFIGURE) return
+        val p = pending ?: restorePending() ?: return
         when (requestCode) {
-            REQ_BIND -> if (resultCode == RESULT_OK) onBound(p) else cancelPending()
-            REQ_CONFIGURE -> if (resultCode == RESULT_OK) finishPending(p) else cancelPending()
+            REQ_BIND -> if (resultCode == RESULT_OK) onBound(p) else cancelPending("bind denied ($resultCode)")
+            REQ_CONFIGURE ->
+                // Sebagian widget mengembalikan CANCELED padahal sudah ter-bind; cek langsung ke sistem
+                if (resultCode == RESULT_OK || data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1) == p.id)
+                    finishPending(p)
+                else cancelPending("config cancelled ($resultCode)")
         }
     }
 
-    private fun cancelPending() {
-        val p = pending ?: return
-        pending = null
+    // Pending disimpan ke prefs: activity launcher bisa dibuat ulang saat dialog izin / konfigurasi terbuka
+    private fun setPending(p: Pending?) {
+        pending = p
+        val e = getSharedPreferences("holo_widget_pending", MODE_PRIVATE).edit()
+        if (p == null) e.clear()
+        else e.putInt("id", p.id).putInt("purpose", p.purpose).putString("provider", p.info.provider.flattenToString())
+        e.apply()
+    }
+
+    private fun restorePending(): Pending? {
+        val sp = getSharedPreferences("holo_widget_pending", MODE_PRIVATE)
+        val id = sp.getInt("id", -1)
+        if (id < 0) return null
+        val comp = ComponentName.unflattenFromString(sp.getString("provider", "") ?: "")
+        val info = widgetMgr.getAppWidgetInfo(id)
+            ?: widgetMgr.installedProviders.firstOrNull { it.provider == comp }
+            ?: return null
+        return Pending(id, info, sp.getInt("purpose", PURPOSE_HOME)).also { pending = it }
+    }
+
+    private fun cancelPending(reason: String? = null) {
+        val p = pending ?: restorePending()
+        setPending(null)
+        if (p == null) return
         widgetHost.deleteAppWidgetId(p.id)
         if (p.purpose == PURPOSE_DOCK) { prefs.dockSearchGoogle = false; applyDock() }
-        else toast(R.string.widget_failed)
+        else Toast.makeText(
+            this, getString(R.string.widget_failed) + (reason?.let { " ($it)" } ?: ""), Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun finishPending(p: Pending) {
-        pending = null
+        setPending(null)
         if (p.purpose == PURPOSE_DOCK) {
             val old = prefs.dockWidgetId
             if (old >= 0 && old != p.id) { widgetViews.remove(old); widgetHost.deleteAppWidgetId(old) }
@@ -530,6 +564,7 @@ class MainActivity : AppCompatActivity() {
         val pos = HomeLayout.findNearest(items, cols, rows, sx, sy, 0, 0)
         if (pos == null) {
             widgetHost.deleteAppWidgetId(p.id)
+            haptic(rejectConst())
             toast(R.string.home_full)
             return
         }
@@ -600,7 +635,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showDrawerMenu(anchor: View, app: AppInfo) {
         currentPopup?.dismiss()
-        currentPopup = PopupMenu(this, anchor).apply {
+        currentPopup = PopupMenu(popupCtx(), anchor).apply {
             menu.add(0, 1, 0, R.string.add_to_home)
             menu.add(0, 4, 0, R.string.add_to_dock)
             menu.add(0, 2, 0, R.string.app_info)
@@ -704,7 +739,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showItemMenu(anchor: View, item: HomeItem) {
-        PopupMenu(this, anchor).apply {
+        PopupMenu(popupCtx(), anchor).apply {
             menu.add(0, 1, 0, R.string.remove)
             if (item.kind == HomeItem.KIND_APP) {
                 menu.add(0, 2, 0, R.string.app_info)
@@ -836,6 +871,19 @@ class MainActivity : AppCompatActivity() {
             .setDuration(180).withEndAction {
                 if (!drawerOpen) { drawer.visibility = View.GONE }
             }.start()
+    }
+
+    // ---------- popup & dialog: bulat, mengikuti tema ----------
+    private fun popupCtx() = ContextThemeWrapper(this, when (prefs.theme) {
+        Themes.GLASS_DARK -> R.style.PopupOverlay_GlassDark
+        Themes.GLASS_LIGHT -> R.style.PopupOverlay_GlassLight
+        else -> R.style.PopupOverlay_Holo
+    })
+
+    private fun dialogRes() = when (prefs.theme) {
+        Themes.GLASS_DARK -> R.style.Dialog_GlassDark
+        Themes.GLASS_LIGHT -> R.style.Dialog_GlassLight
+        else -> R.style.Dialog_Holo
     }
 
     // ---------- status bar ----------
@@ -989,7 +1037,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDockMenu(anchor: View, key: String) {
-        PopupMenu(this, anchor).apply {
+        PopupMenu(popupCtx(), anchor).apply {
             menu.add(0, 1, 0, R.string.remove_from_dock)
             menu.add(0, 2, 0, R.string.app_info)
             menu.add(0, 3, 0, R.string.uninstall)
@@ -1007,7 +1055,7 @@ class MainActivity : AppCompatActivity() {
     private fun showDockPicker(slot: Int) {
         if (!appsLoaded || apps.isEmpty()) return
         val list = apps
-        val adapter = object : ArrayAdapter<AppInfo>(this, R.layout.item_widget, list) {
+        val adapter = object : ArrayAdapter<AppInfo>(ContextThemeWrapper(this, dialogRes()), R.layout.item_widget, list) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val v = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_widget, parent, false)
                 val a = getItem(position)!!
@@ -1017,7 +1065,7 @@ class MainActivity : AppCompatActivity() {
                 return v
             }
         }
-        AlertDialog.Builder(this).setTitle(R.string.choose_app)
+        AlertDialog.Builder(this, dialogRes()).setTitle(R.string.choose_app)
             .setAdapter(adapter) { _, i -> placeInDock(list[i].key, slot) }
             .show()
     }

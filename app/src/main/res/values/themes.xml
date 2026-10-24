@@ -23,4 +23,40 @@
         <item name="android:statusBarColor">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
     </style>
+    <style name="PopupMenu.Holo" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_holo</item>
+    </style>
+    <style name="PopupOverlay.Holo" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="popupMenuStyle">@style/PopupMenu.Holo</item>
+        <item name="android:popupMenuStyle">@style/PopupMenu.Holo</item>
+    </style>
+    <style name="PopupMenu.GlassDark" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_glass_dark</item>
+    </style>
+    <style name="PopupOverlay.GlassDark" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="popupMenuStyle">@style/PopupMenu.GlassDark</item>
+        <item name="android:popupMenuStyle">@style/PopupMenu.GlassDark</item>
+    </style>
+    <style name="PopupMenu.GlassLight" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_glass_light</item>
+    </style>
+    <style name="PopupOverlay.GlassLight" parent="ThemeOverlay.AppCompat.Light">
+        <item name="popupMenuStyle">@style/PopupMenu.GlassLight</item>
+        <item name="android:popupMenuStyle">@style/PopupMenu.GlassLight</item>
+    </style>
+    <style name="Dialog.Holo" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog_holo</item>
+        <item name="colorAccent">@color/holo_blue</item>
+    </style>
+    <style name="Dialog.GlassDark" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog_glass_dark</item>
+        <item name="colorAccent">#FFFFFFFF</item>
+    </style>
+    <style name="Dialog.GlassLight" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog_glass_light</item>
+        <item name="colorAccent">#FF1C1C1E</item>
+    </style>
+    <style name="SpinnerPopup" parent="Widget.AppCompat.Spinner">
+        <item name="android:popupBackground">@drawable/bg_popup_holo</item>
+    </style>
 </resources>
