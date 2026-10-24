@@ -19,6 +19,10 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("drawer_cols", 4)
         set(v) = sp.edit().putInt("drawer_cols", v).apply()
 
+    var theme: String
+        get() = sp.getString("theme", Themes.HOLO) ?: Themes.HOLO
+        set(v) = sp.edit().putString("theme", v).apply()
+
     /** Dock dua baris: baris bawah berisi search bar / widget Google Search. */
     var dockTwoRows: Boolean
         get() = sp.getBoolean("dock_two_rows", false)

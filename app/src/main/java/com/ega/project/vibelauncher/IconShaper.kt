@@ -11,7 +11,7 @@ import android.os.Build
 object IconShaper {
     private const val CORNER = 0.26f // rasio radius terhadap ukuran ikon
 
-    fun shape(res: Resources, src: Drawable, size: Int): Drawable {
+    fun shape(res: Resources, src: Drawable, size: Int, glass: Boolean = false): Drawable {
         val s = size.toFloat()
         val content = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val c = Canvas(content)
@@ -35,6 +35,22 @@ object IconShaper {
             shader = BitmapShader(content, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         }
         Canvas(out).drawRoundRect(RectF(0f, 0f, s, s), s * CORNER, s * CORNER, paint)
+        if (glass) {
+            // Liquid glass: kilau di bagian atas + tepi terang tipis
+            val c2 = Canvas(out)
+            val r = s * CORNER
+            val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = LinearGradient(0f, 0f, 0f, s * 0.6f, 0x55FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
+            }
+            c2.drawRoundRect(RectF(0f, 0f, s, s), r, r, gloss)
+            val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = s * 0.03f
+                shader = LinearGradient(0f, 0f, s, s, 0xCCFFFFFF.toInt(), 0x22FFFFFF, Shader.TileMode.CLAMP)
+            }
+            val inset = edge.strokeWidth / 2f
+            c2.drawRoundRect(RectF(inset, inset, s - inset, s - inset), r, r, edge)
+        }
         return BitmapDrawable(res, out)
     }
 }

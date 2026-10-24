@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 
 object AppRepository {
-    fun load(ctx: Context): List<AppInfo> {
+    fun load(ctx: Context, glass: Boolean = false): List<AppInfo> {
         val pm = ctx.packageManager
         val query = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val size = (64 * ctx.resources.displayMetrics.density).toInt()
@@ -16,7 +16,7 @@ object AppRepository {
                 AppInfo(
                     ri.loadLabel(pm).toString(),
                     ComponentName(ai.packageName, ai.name),
-                    IconShaper.shape(ctx.resources, ri.loadIcon(pm), size)
+                    IconShaper.shape(ctx.resources, ri.loadIcon(pm), size, glass)
                 )
             }
             .sortedBy { it.label.lowercase() }

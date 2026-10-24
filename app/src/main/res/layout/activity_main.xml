@@ -37,11 +37,13 @@
             android:paddingEnd="8dp" />
 
         <View
+            android:id="@+id/dock_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="#4033B5E5" />
 
         <LinearLayout
+            android:id="@+id/dock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_dock"
@@ -129,6 +131,7 @@
         android:visibility="gone">
 
         <LinearLayout
+            android:id="@+id/drag_bar"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="#E6101010"
@@ -188,6 +191,7 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/drawer_title"
                     android:layout_width="wrap_content"
                     android:layout_height="0dp"
                     android:layout_weight="1"
@@ -200,6 +204,7 @@
                     android:textStyle="bold" />
 
                 <View
+                    android:id="@+id/drawer_underline"
                     android:layout_width="match_parent"
                     android:layout_height="3dp"
                     android:background="@color/holo_blue" />
@@ -222,6 +227,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/drawer_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/holo_line" />

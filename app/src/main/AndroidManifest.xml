@@ -2,8 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
     <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -42,6 +47,12 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="@string/settings"
+            android:theme="@style/Theme.HoloSettings" />
+
+        <activity
+            android:name=".CustomizeActivity"
+            android:exported="false"
+            android:label="@string/customize"
             android:theme="@style/Theme.HoloSettings" />
     </application>
 </manifest>

@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/grid_settings"
+            android:text="@string/settings"
             android:textAllCaps="true"
             android:textColor="@color/holo_blue"
             android:textSize="18sp"
@@ -23,120 +23,71 @@
             android:layout_width="match_parent"
             android:layout_height="2dp"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="8dp"
             android:background="@color/holo_blue" />
 
-        <TextView
-            android:id="@+id/label_home_cols"
+        <LinearLayout
+            android:id="@+id/item_default_launcher"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
+            android:background="@drawable/bg_item"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp">
 
-        <com.google.android.material.slider.Slider
-            android:id="@+id/slider_home_cols"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:stepSize="1"
-            android:valueFrom="3"
-            android:valueTo="6" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/default_launcher"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/label_home_rows"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
-        <com.google.android.material.slider.Slider
-            android:id="@+id/slider_home_rows"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:stepSize="1"
-            android:valueFrom="3"
-            android:valueTo="7" />
-
-        <TextView
-            android:id="@+id/label_drawer_cols"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
-        <com.google.android.material.slider.Slider
-            android:id="@+id/slider_drawer_cols"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:stepSize="1"
-            android:valueFrom="3"
-            android:valueTo="7" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/dock_settings"
-            android:textAllCaps="true"
-            android:textColor="@color/holo_blue"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/default_launcher_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#99FFFFFF"
+                android:textSize="13sp" />
+        </LinearLayout>
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:background="@color/holo_blue" />
+            android:layout_height="1dp"
+            android:background="@color/holo_line" />
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_dock_two_rows"
+        <LinearLayout
+            android:id="@+id/item_customize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/dock_two_rows"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
+            android:background="@drawable/bg_item"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:text="@string/dock_two_rows_hint"
-            android:textColor="#99FFFFFF"
-            android:textSize="13sp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/search_widget"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
-        <RadioGroup
-            android:id="@+id/group_search"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp">
-
-            <RadioButton
-                android:id="@+id/radio_search_builtin"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/search_builtin"
-                android:textColor="#FFFFFF" />
+                android:text="@string/customize"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
 
-            <RadioButton
-                android:id="@+id/radio_search_google"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/search_google"
-                android:textColor="#FFFFFF" />
-        </RadioGroup>
+                android:layout_marginTop="2dp"
+                android:text="@string/customize_desc"
+                android:textColor="#99FFFFFF"
+                android:textSize="13sp" />
+        </LinearLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/holo_line" />
     </LinearLayout>
 </ScrollView>

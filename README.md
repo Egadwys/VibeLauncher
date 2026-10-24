@@ -16,6 +16,10 @@ Launcher Android bergaya Holo (Jelly Bean) + sentuhan Material Design.
 - Drag & drop: long-press ikon (home atau drawer) lalu geser ke sel tujuan. Bar di atas muncul saat drag: Hapus / Info aplikasi / Copot. Lepas di tempat semula = menu. Drop di atas app lain = tukar posisi.
 - Tanpa efek sentuhan kotak di home screen & dock.
 - Dock dua baris (Pengaturan -> Dock): baris bawah berisi search bar bawaan atau widget Google Search.
+- Drawer: tekan lama ikon -> tooltip menu (Tambah ke Home / Info / Copot); lanjut geser jari -> drag ke home.
+- Gesture: swipe atas di home = buka drawer, swipe bawah di drawer = tutup, swipe bawah di home = buka notifikasi.
+- Tema (Kustomisasi): Holo, Liquid Glass Gelap, Liquid Glass Terang — panel kaca translusen, ikon berkilau, blur wallpaper di drawer (Android 12+).
+- Pengaturan: Launcher default (dialog sistem) dan Kustomisasi (grid, dock).
 - App drawer berhalaman, geser ke samping ala Jelly Bean, dengan indikator titik.
 
 ## Belum ada

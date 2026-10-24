@@ -24,4 +24,13 @@
     <string name="search_widget">Widget pencarian</string>
     <string name="search_builtin">Search bar bawaan</string>
     <string name="search_google">Widget Google Search</string>
+    <string name="default_launcher">Launcher default</string>
+    <string name="default_launcher_active">VibeLauncher adalah launcher default</string>
+    <string name="default_launcher_inactive">Ketuk untuk menjadikan VibeLauncher launcher default</string>
+    <string name="customize">Kustomisasi</string>
+    <string name="customize_desc">Tema, grid, dock</string>
+    <string name="theme">Tema</string>
+    <string name="theme_holo">Holo (default)</string>
+    <string name="theme_glass_dark">Liquid Glass – Gelap</string>
+    <string name="theme_glass_light">Liquid Glass – Terang</string>
 </resources>
