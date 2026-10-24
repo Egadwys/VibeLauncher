@@ -102,14 +102,6 @@
             android:valueFrom="3"
             android:valueTo="7" />
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_drawer_search"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/drawer_search"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

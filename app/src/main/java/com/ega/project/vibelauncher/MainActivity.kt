@@ -98,6 +98,14 @@ class MainActivity : AppCompatActivity() {
     private var apps: List<AppInfo> = emptyList()
     private var appsLoaded = false
     private lateinit var drawerSearch: EditText
+    private lateinit var drawerTitleBlock: View
+    private lateinit var drawerSpacer: View
+    private lateinit var drawerSearchBtn: ImageView
+    private lateinit var drawerPlayBtn: ImageView
+    private var searchOpen = false
+    private var resizeOverlay: WidgetResizeOverlay? = null
+    private var resizeItems: MutableList<HomeItem>? = null
+    private var resizeLive: HomeItem? = null
     private var suppressSearch = false
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -127,6 +135,14 @@ class MainActivity : AppCompatActivity() {
             .map { findViewById<ImageView>(it) }
         drawerPager = findViewById(R.id.drawer_pager)
         drawerSearch = findViewById(R.id.drawer_search)
+        drawerTitleBlock = findViewById(R.id.drawer_title_block)
+        drawerSpacer = findViewById(R.id.drawer_spacer)
+        drawerSearchBtn = findViewById(R.id.drawer_search_btn)
+        drawerPlayBtn = findViewById(R.id.drawer_play_btn)
+        drawerSearchBtn.setOnClickListener {
+            haptic(HapticFeedbackConstants.VIRTUAL_KEY)
+            if (searchOpen) { resetDrawerSearch(); buildDrawer() } else setSearchOpen(true)
+        }
         drawerSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -188,7 +204,7 @@ class MainActivity : AppCompatActivity() {
 
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = closeDrawer()
+            override fun handleOnBackPressed() { if (resizeOverlay != null) endResize() else closeDrawer() }
         })
         addOnNewIntentListener { closeDrawer() } // tombol Home ditekan saat drawer terbuka
 
@@ -201,12 +217,28 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.registerReceiver(this, pkgReceiver, f, ContextCompat.RECEIVER_EXPORTED)
 
         loadApps()
+        if (!prefs.defaultPrompted && !DefaultLauncher.isDefault(this)) {
+            window.decorView.post { showDefaultPrompt() }
+        }
+    }
+
+    private fun showDefaultPrompt() {
+        if (isFinishing || isDestroyed) return
+        prefs.defaultPrompted = true
+        showCapped(
+            AlertDialog.Builder(this, dialogRes())
+                .setTitle(R.string.default_title)
+                .setMessage(R.string.default_message)
+                .setPositiveButton(R.string.default_set) { _, _ -> DefaultLauncher.request(this) }
+                .setNegativeButton(R.string.not_now, null)
+                .create()
+        )
     }
 
     // ---------- gesture swipe ----------
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) gestureBlocked = isOnHomeWidget(ev.rawX, ev.rawY)
-        if (!gestureBlocked && drag == null) gestures.onTouchEvent(ev)
+        if (!gestureBlocked && drag == null && resizeOverlay == null) gestures.onTouchEvent(ev)
         return super.dispatchTouchEvent(ev)
     }
 
@@ -261,7 +293,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadApps() {
         executor.execute {
             val list = AppRepository.load(this, false)
-            runOnUiThread { apps = list; appsLoaded = true; renderHome(); renderDock() }
+            runOnUiThread { apps = list; appsLoaded = true; renderHome(); renderDock(); bindPlayStore() }
         }
     }
 
@@ -310,8 +342,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.drawer_underline).setBackgroundColor(accent)
         findViewById<View>(R.id.drawer_divider).setBackgroundColor(ContextCompat.getColor(this, R.color.holo_line))
         findViewById<TextView>(R.id.drawer_overflow).setTextColor(0xFFFFFFFF.toInt())
-        drawerSearch.visibility = if (prefs.drawerSearch) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.drawer_spacer).visibility = if (prefs.drawerSearch) View.GONE else View.VISIBLE
 
         // Bar target drag
         findViewById<View>(R.id.drag_bar).setBackgroundColor(Themes.dragBarBg(Themes.HOLO))
@@ -435,10 +465,56 @@ class MainActivity : AppCompatActivity() {
 
     // ---------- widget: pilih, bind, konfigurasi ----------
     private fun showHomeMenu() {
-        val items = arrayOf(getString(R.string.widgets), getString(R.string.settings))
-        AlertDialog.Builder(this, dialogRes()).setItems(items) { _, which ->
-            if (which == 0) showWidgetPicker() else openSettings()
-        }.show()
+        val ctx = ContextThemeWrapper(this, dialogRes())
+        val d = resources.displayMetrics.density
+        val tv = android.util.TypedValue()
+        ctx.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)
+        val bgRes = tv.resourceId
+        lateinit var dialog: AlertDialog
+        val box = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+        fun row(label: Int, action: () -> Unit) {
+            box.addView(TextView(ctx).apply {
+                setText(label)
+                textSize = 16f
+                setTextColor(textColorOf(ctx, android.R.attr.textColorPrimary))
+                setPadding((24 * d).toInt(), (14 * d).toInt(), (24 * d).toInt(), (14 * d).toInt())
+                if (bgRes != 0) setBackgroundResource(bgRes)
+                setOnClickListener { dialog.dismiss(); action() }
+            })
+        }
+        row(R.string.widgets) { showWidgetPicker() }
+        row(R.string.settings) { openSettings() }
+        box.addView(footerView(ctx))
+        dialog = AlertDialog.Builder(this, dialogRes()).setView(box).create()
+        showCapped(dialog)
+    }
+
+    private fun textColorOf(ctx: Context, attr: Int): Int {
+        val tv = android.util.TypedValue()
+        ctx.theme.resolveAttribute(attr, tv, true)
+        return if (tv.resourceId != 0) ContextCompat.getColor(ctx, tv.resourceId) else tv.data
+    }
+
+    /** Teks kecil "Dibuat dengan Claude" di bagian bawah popup. */
+    private fun footerView(ctx: Context): TextView {
+        val d = resources.displayMetrics.density
+        return TextView(ctx).apply {
+            setText(R.string.made_with_claude)
+            textSize = 12f
+            gravity = android.view.Gravity.CENTER
+            alpha = 0.6f
+            setTextColor(textColorOf(ctx, android.R.attr.textColorSecondary))
+            setPadding(0, (12 * d).toInt(), 0, (14 * d).toInt())
+        }
+    }
+
+    /** Tampilkan dialog dengan lebar secukupnya (maks ~320dp), bukan selebar layar. */
+    private fun showCapped(dialog: AlertDialog, withFooter: Boolean = false) {
+        dialog.show()
+        if (withFooter) dialog.listView?.addFooterView(footerView(ContextThemeWrapper(this, dialogRes())), null, false)
+        val d = resources.displayMetrics
+        val w = minOf((320 * d.density).toInt(), (d.widthPixels * 0.88f).toInt())
+        dialog.window?.setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private fun widgetSpan(info: AppWidgetProviderInfo): Pair<Int, Int> {
@@ -466,9 +542,11 @@ class MainActivity : AppCompatActivity() {
                 return v
             }
         }
-        AlertDialog.Builder(this, dialogRes()).setTitle(R.string.widgets)
-            .setAdapter(adapter) { _, i -> startBind(list[i], PURPOSE_HOME) }
-            .show()
+        showCapped(
+            AlertDialog.Builder(this, dialogRes()).setTitle(R.string.widgets)
+                .setAdapter(adapter) { _, i -> startBind(list[i], PURPOSE_HOME) }
+                .create(), withFooter = true
+        )
     }
 
     private fun startBind(info: AppWidgetProviderInfo, purpose: Int) {
@@ -476,18 +554,35 @@ class MainActivity : AppCompatActivity() {
             val id = widgetHost.allocateAppWidgetId()
             val p = Pending(id, info, purpose)
             setPending(p)
-            val allowed = widgetMgr.bindAppWidgetIdIfAllowed(id, info.profile, info.provider, null)
+            val options = bindOptions(info)
+            val allowed = widgetMgr.bindAppWidgetIdIfAllowed(id, info.profile, info.provider, options)
             if (allowed) onBound(p)
             else {
                 val i = Intent(AppWidgetManager.ACTION_APPWIDGET_BIND)
                     .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
                     .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER, info.provider)
                     .putExtra(AppWidgetManager.EXTRA_APPWIDGET_PROVIDER_PROFILE, info.profile)
+                    .putExtra(AppWidgetManager.EXTRA_APPWIDGET_OPTIONS, options)
                 @Suppress("DEPRECATION")
                 startActivityForResult(i, REQ_BIND)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             cancelPending("bind: ${e.javaClass.simpleName} ${e.message ?: ""}".trim())
+        }
+    }
+
+    /** Opsi ukuran + kategori host; sebagian widget (mis. Google) menolak / gagal tanpa ini. */
+    private fun bindOptions(info: AppWidgetProviderInfo): Bundle {
+        val dn = resources.displayMetrics.density
+        val (sx, sy) = widgetSpan(info)
+        val w = (sx * max(1f, homeGrid.cellWidth) / dn).toInt().coerceAtLeast((info.minWidth / dn).toInt())
+        val h = (sy * max(1f, homeGrid.cellHeight) / dn).toInt().coerceAtLeast((info.minHeight / dn).toInt())
+        return Bundle().apply {
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, w)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, w)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, h)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, h)
+            putInt(AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY, AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN)
         }
     }
 
@@ -495,7 +590,7 @@ class MainActivity : AppCompatActivity() {
         if (p.info.configure != null) {
             try {
                 widgetHost.startAppWidgetConfigureActivityForResult(this, p.id, 0, REQ_CONFIGURE, null)
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 // Konfigurasi gagal dibuka -> coba tambahkan widget apa adanya
                 if (widgetMgr.getAppWidgetInfo(p.id) != null) finishPending(p)
                 else cancelPending("config: ${e.javaClass.simpleName} ${e.message ?: ""}".trim())
@@ -544,7 +639,7 @@ class MainActivity : AppCompatActivity() {
         if (p == null) return
         widgetHost.deleteAppWidgetId(p.id)
         if (p.purpose == PURPOSE_DOCK) { prefs.dockSearchGoogle = false; applyDock() }
-        else Toast.makeText(
+        Toast.makeText(
             this, getString(R.string.widget_failed) + (reason?.let { " ($it)" } ?: ""), Toast.LENGTH_LONG
         ).show()
     }
@@ -570,6 +665,51 @@ class MainActivity : AppCompatActivity() {
         }
         items.add(HomeItem(HomeItem.KIND_WIDGET, p.id.toString(), pos[0], pos[1], sx, sy))
         prefs.saveHomeItems(items)
+        renderHome()
+    }
+
+    // ---------- resize widget ----------
+    private fun startResize(item: HomeItem) {
+        if (resizeOverlay != null) return
+        val items = prefs.homeItems()
+        val target = items.firstOrNull { it.kind == item.kind && it.key == item.key } ?: return
+        val info = widgetMgr.getAppWidgetInfo(target.key.toIntOrNull() ?: return) ?: return
+        val canH = (info.resizeMode and AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0
+        val canV = (info.resizeMode and AppWidgetProviderInfo.RESIZE_VERTICAL) != 0
+        if (!canH && !canV) { toast(R.string.not_resizable); return }
+        val cw = max(1f, homeGrid.cellWidth); val ch = max(1f, homeGrid.cellHeight)
+        val minSx = if (info.minResizeWidth > 0) ceil(info.minResizeWidth / cw).toInt() else 1
+        val minSy = if (info.minResizeHeight > 0) ceil(info.minResizeHeight / ch).toInt() else 1
+        // Objek yang dipakai grid (view.tag) yang diubah langsung supaya tampilan ikut berubah
+        val live = homeGrid.viewFor(target)?.tag as? HomeItem ?: return
+        val overlay = WidgetResizeOverlay(
+            this, homeGrid, live, items.filter { it !== target },
+            minSx.coerceIn(1, live.spanX), minSy.coerceIn(1, live.spanY), canH, canV,
+            onChanged = { haptic(tickConst()); homeGrid.requestLayout() },
+            onDone = { endResize() }
+        )
+        resizeOverlay = overlay
+        resizeItems = items
+        resizeLive = live
+        findViewById<FrameLayout>(R.id.root).addView(
+            overlay, 1, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+    }
+
+    private fun endResize() {
+        val o = resizeOverlay ?: return
+        resizeOverlay = null
+        (o.parent as? ViewGroup)?.removeView(o)
+        val live = resizeLive
+        resizeItems?.let { list ->
+            if (live != null) list.firstOrNull { it.kind == live.kind && it.key == live.key }?.let {
+                it.col = live.col; it.row = live.row; it.spanX = live.spanX; it.spanY = live.spanY
+            }
+            prefs.saveHomeItems(list)
+        }
+        resizeItems = null
+        resizeLive = null
+        haptic(confirmConst())
         renderHome()
     }
 
@@ -620,7 +760,6 @@ class MainActivity : AppCompatActivity() {
         dragRemove.visibility = if (p.fromHome) View.VISIBLE else View.GONE
         dragInfo.visibility = if (isApp) View.VISIBLE else View.GONE
         dragUninstall.visibility = if (isApp) View.VISIBLE else View.GONE
-        dragBarWrap.visibility = View.VISIBLE
         val ok = ViewCompat.startDragAndDrop(
             view, ClipData.newPlainText("vibe", p.key), View.DragShadowBuilder(view), p, 0
         )
@@ -741,6 +880,7 @@ class MainActivity : AppCompatActivity() {
     private fun showItemMenu(anchor: View, item: HomeItem) {
         PopupMenu(popupCtx(), anchor).apply {
             menu.add(0, 1, 0, R.string.remove)
+            if (item.kind == HomeItem.KIND_WIDGET) menu.add(0, 4, 0, R.string.resize)
             if (item.kind == HomeItem.KIND_APP) {
                 menu.add(0, 2, 0, R.string.app_info)
                 menu.add(0, 3, 0, R.string.uninstall)
@@ -748,6 +888,7 @@ class MainActivity : AppCompatActivity() {
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     1 -> removeItem(item)
+                    4 -> startResize(item)
                     2 -> openAppInfo(pkgOf(item.key))
                     3 -> uninstall(pkgOf(item.key))
                 }
@@ -824,8 +965,22 @@ class MainActivity : AppCompatActivity() {
 
     /** Daftar app di drawer, disaring oleh search bar (kalau aktif). */
     private fun drawerResults(): List<AppInfo> {
-        val q = if (prefs.drawerSearch) drawerSearch.text.toString().trim() else ""
+        val q = drawerSearch.text.toString().trim()
         return if (q.isEmpty()) apps else apps.filter { it.label.contains(q, ignoreCase = true) }
+    }
+
+    /** Ikon search di header: ketuk -> kolom pencarian menggantikan judul; ketuk lagi (ikon X) -> tutup. */
+    private fun setSearchOpen(open: Boolean) {
+        searchOpen = open
+        drawerTitleBlock.visibility = if (open) View.GONE else View.VISIBLE
+        drawerSpacer.visibility = if (open) View.GONE else View.VISIBLE
+        drawerSearch.visibility = if (open) View.VISIBLE else View.GONE
+        drawerSearchBtn.setImageResource(if (open) R.drawable.ic_close else R.drawable.ic_search)
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        if (open) {
+            drawerSearch.requestFocus()
+            imm.showSoftInput(drawerSearch, InputMethodManager.SHOW_IMPLICIT)
+        } else imm.hideSoftInputFromWindow(drawerSearch.windowToken, 0)
     }
 
     private fun resetDrawerSearch() {
@@ -833,8 +988,16 @@ class MainActivity : AppCompatActivity() {
         drawerSearch.setText("")
         suppressSearch = false
         drawerSearch.clearFocus()
-        (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .hideSoftInputFromWindow(drawerSearch.windowToken, 0)
+        setSearchOpen(false)
+    }
+
+    /** Ikon Play Store di header drawer (disembunyikan kalau tidak terpasang). */
+    private fun bindPlayStore() {
+        val app = apps.firstOrNull { it.packageName == "com.android.vending" }
+        if (app == null) { drawerPlayBtn.visibility = View.GONE; return }
+        drawerPlayBtn.setImageDrawable(app.icon)
+        drawerPlayBtn.visibility = View.VISIBLE
+        drawerPlayBtn.setOnClickListener { launch(app) }
     }
 
     private fun buildDots(n: Int) {
@@ -1065,9 +1228,11 @@ class MainActivity : AppCompatActivity() {
                 return v
             }
         }
-        AlertDialog.Builder(this, dialogRes()).setTitle(R.string.choose_app)
-            .setAdapter(adapter) { _, i -> placeInDock(list[i].key, slot) }
-            .show()
+        showCapped(
+            AlertDialog.Builder(this, dialogRes()).setTitle(R.string.choose_app)
+                .setAdapter(adapter) { _, i -> placeInDock(list[i].key, slot) }
+                .create(), withFooter = true
+        )
     }
 
 }

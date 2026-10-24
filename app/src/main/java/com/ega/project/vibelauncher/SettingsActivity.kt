@@ -1,11 +1,7 @@
 package com.ega.project.vibelauncher
 
-import android.app.role.RoleManager
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
@@ -29,27 +25,7 @@ class SettingsActivity : AppCompatActivity() {
         )
     }
 
-    private fun isDefaultLauncher(): Boolean {
-        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        val ri = packageManager.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)
-        return ri?.activityInfo?.packageName == packageName
-    }
+    private fun isDefaultLauncher() = DefaultLauncher.isDefault(this)
 
-    private fun chooseDefaultLauncher() {
-        // Android 10+: dialog peran Home langsung; selain itu / sudah default -> layar pengaturan Home
-        if (Build.VERSION.SDK_INT >= 29 && !isDefaultLauncher()) {
-            try {
-                val rm = getSystemService(RoleManager::class.java)
-                if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                    @Suppress("DEPRECATION")
-                    startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_HOME), 201)
-                    return
-                }
-            } catch (_: Exception) {
-            }
-        }
-        for (action in listOf(Settings.ACTION_HOME_SETTINGS, Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS, Settings.ACTION_SETTINGS)) {
-            try { startActivity(Intent(action)); return } catch (_: Exception) {}
-        }
-    }
+    private fun chooseDefaultLauncher() = DefaultLauncher.request(this)
 }

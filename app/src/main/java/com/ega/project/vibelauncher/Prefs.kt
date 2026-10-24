@@ -37,10 +37,10 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("dock_widget_id", -1)
         set(v) = sp.edit().putInt("dock_widget_id", v).apply()
 
-    /** Search bar di app drawer (bisa dimatikan di pengaturan). */
-    var drawerSearch: Boolean
-        get() = sp.getBoolean("drawer_search", true)
-        set(v) = sp.edit().putBoolean("drawer_search", v).apply()
+    /** Prompt "jadikan launcher default" sudah pernah ditampilkan. */
+    var defaultPrompted: Boolean
+        get() = sp.getBoolean("default_prompted", false)
+        set(v) = sp.edit().putBoolean("default_prompted", v).apply()
 
     var haptics: Boolean
         get() = sp.getBoolean("haptics", true)

@@ -38,6 +38,13 @@
     <string name="dock_full">Dock is full</string>
     <string name="choose_app">Choose app</string>
     <string name="haptics">Haptic feedback</string>
-    <string name="drawer_search">Search bar in app drawer</string>
     <string name="search_apps">Search apps</string>
+    <string name="play_store">Play Store</string>
+    <string name="resize">Resize</string>
+    <string name="not_resizable">This widget can\'t be resized</string>
+    <string name="made_with_claude">Made with Claude</string>
+    <string name="default_title">Set as default launcher?</string>
+    <string name="default_message">Make VibeLauncher your home screen so the Home button opens it.</string>
+    <string name="default_set">Set as default</string>
+    <string name="not_now">Not now</string>
 </resources>

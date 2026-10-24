@@ -38,6 +38,13 @@
     <string name="dock_full">Dock penuh</string>
     <string name="choose_app">Pilih aplikasi</string>
     <string name="haptics">Umpan balik haptik</string>
-    <string name="drawer_search">Search bar di laci aplikasi</string>
     <string name="search_apps">Cari aplikasi</string>
+    <string name="play_store">Play Store</string>
+    <string name="resize">Ubah ukuran</string>
+    <string name="not_resizable">Widget ini tidak bisa diubah ukurannya</string>
+    <string name="made_with_claude">Dibuat dengan Claude</string>
+    <string name="default_title">Jadikan launcher default?</string>
+    <string name="default_message">Jadikan VibeLauncher layar utama agar tombol Home membukanya.</string>
+    <string name="default_set">Jadikan default</string>
+    <string name="not_now">Nanti saja</string>
 </resources>
