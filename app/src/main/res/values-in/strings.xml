@@ -28,16 +28,22 @@
     <string name="default_launcher_active">VibeLauncher adalah launcher default</string>
     <string name="default_launcher_inactive">Ketuk untuk menjadikan VibeLauncher launcher default</string>
     <string name="customize">Kustomisasi</string>
-    <string name="customize_desc">Tema, grid, dock</string>
-    <string name="theme">Tema dock</string>
-    <string name="theme_holo">Holo (default)</string>
-    <string name="theme_glass_dark">Liquid Glass – Gelap</string>
-    <string name="theme_glass_light">Liquid Glass – Terang</string>
+    <string name="customize_desc">Tema, grid, dock, dan haptik</string>
+    <string name="theme">Tema</string>
+    <string name="theme_material">Material Design (Default)</string>
+    <string name="theme_glass_dark">Real Liquid Glass – Gelap</string>
+    <string name="theme_glass_light">Real Liquid Glass – Terang</string>
+    <string name="theme_holo" translatable="false">Material Design (Default)</string>
     <string name="add_to_dock">Tambah ke Dock</string>
     <string name="remove_from_dock">Hapus dari Dock</string>
     <string name="dock_full">Dock penuh</string>
     <string name="choose_app">Pilih aplikasi</string>
     <string name="haptics">Umpan balik haptik</string>
+    <string name="blur_enable">Blur latar (Liquid Glass)</string>
+    <string name="blur_hint">Hanya berlaku di tema Liquid Glass. Matikan untuk hemat baterai.</string>
+    <string name="blur_access_needed">Untuk memblur wallpaper, Android 13+ mewajibkan izin "Akses semua file" untuk app ini. Tanpa itu blur tetap mati.</string>
+    <string name="blur_access_grant">Izinkan akses wallpaper</string>
+    <string name="blur_strength">Kekuatan blur: %1$d</string>
     <string name="search_apps">Cari aplikasi</string>
     <string name="play_store">Play Store</string>
     <string name="resize">Ubah ukuran</string>
@@ -47,4 +53,36 @@
     <string name="default_message">Jadikan VibeLauncher layar utama agar tombol Home membukanya.</string>
     <string name="default_set">Jadikan default</string>
     <string name="not_now">Nanti saja</string>
+
+    <!-- Settings (redesign) -->
+    <string name="back">Kembali</string>
+    <string name="section_general">Umum</string>
+    <string name="section_personalize">Personalisasi</string>
+    <string name="section_about">Tentang</string>
+    <string name="appearance">Tampilan</string>
+    <string name="appearance_desc">Tema dan efek blur</string>
+    <string name="layout_title">Layar utama &amp; laci</string>
+    <string name="layout_desc">Ukuran grid layar utama dan laci aplikasi</string>
+    <string name="dock_desc">Tata letak dock dan bilah pencarian</string>
+    <string name="interaction">Interaksi</string>
+    <string name="interaction_desc">Umpan balik haptik</string>
+    <string name="section_theme">Tema</string>
+    <string name="section_blur">Efek blur</string>
+    <string name="section_home">Layar utama</string>
+    <string name="section_drawer">Laci aplikasi</string>
+    <string name="section_dock">Dock</string>
+    <string name="section_search">Bilah pencarian</string>
+    <string name="section_feedback">Umpan balik</string>
+    <string name="theme_desc">Pilih gaya visual. Berlaku di semua layar: home, laci, dialog, dan pengaturan.</string>
+    <string name="theme_material_short">Material</string>
+    <string name="theme_glass_dark_short">Glass Gelap</string>
+    <string name="theme_glass_light_short">Glass Terang</string>
+    <string name="label_columns">Kolom</string>
+    <string name="label_rows">Baris</string>
+    <string name="blur_strength_label">Kekuatan</string>
+    <string name="blur_only_glass">Blur hanya tersedia di tema Liquid Glass.</string>
+    <string name="search_builtin_short">Bawaan</string>
+    <string name="search_google_short">Google</string>
+    <string name="haptics_hint">Getaran halus saat drag, snap, dan ketuk</string>
+    <string name="about_version">Versi %1$s</string>
 </resources>

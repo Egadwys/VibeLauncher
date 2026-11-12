@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base Launcher Theme (Material 3 + Translucent Wallpaper) -->
     <style name="Theme.HoloLauncher" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">@color/holo_blue_dark</item>
+        <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorPrimaryVariant">@color/holo_blue_dark</item>
-        <item name="colorOnPrimary">@android:color/white</item>
-        <item name="colorSecondary">@color/holo_blue</item>
-        <item name="colorOnSecondary">@android:color/black</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_onSurface</item>
         <item name="android:windowShowWallpaper">true</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
@@ -14,22 +17,37 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
+    <style name="Theme.VibeLauncher" parent="Theme.HoloLauncher" />
+
+    <!-- Settings: window transparan + wallpaper; warna latar (solid / glass) diatur SettingsUi per tema -->
     <style name="Theme.HoloSettings" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">@color/holo_blue</item>
+        <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorPrimaryVariant">@color/holo_blue_dark</item>
-        <item name="colorOnPrimary">@android:color/black</item>
-        <item name="colorSecondary">@color/holo_blue</item>
-        <item name="android:windowBackground">@color/holo_bg</item>
-        <item name="android:statusBarColor">@android:color/black</item>
-        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">@color/md_theme_secondary</item>
+        <item name="colorSurface">@color/md_theme_surface</item>
+        <item name="colorOnSurface">@color/md_theme_onSurface</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
-    <style name="PopupMenu.Holo" parent="Widget.AppCompat.PopupMenu">
-        <item name="android:popupBackground">@drawable/bg_popup_holo</item>
+
+    <style name="Theme.VibeSettings" parent="Theme.HoloSettings" />
+
+    <!-- Popup Menu Styles -->
+    <style name="PopupMenu.Material" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_material</item>
     </style>
-    <style name="PopupOverlay.Holo" parent="ThemeOverlay.AppCompat.Dark">
-        <item name="popupMenuStyle">@style/PopupMenu.Holo</item>
-        <item name="android:popupMenuStyle">@style/PopupMenu.Holo</item>
+    <style name="PopupMenu.Holo" parent="PopupMenu.Material" />
+
+    <style name="PopupOverlay.Material" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="popupMenuStyle">@style/PopupMenu.Material</item>
+        <item name="android:popupMenuStyle">@style/PopupMenu.Material</item>
     </style>
+    <style name="PopupOverlay.Holo" parent="PopupOverlay.Material" />
+
     <style name="PopupMenu.GlassDark" parent="Widget.AppCompat.PopupMenu">
         <item name="android:popupBackground">@drawable/bg_popup_glass_dark</item>
     </style>
@@ -37,6 +55,7 @@
         <item name="popupMenuStyle">@style/PopupMenu.GlassDark</item>
         <item name="android:popupMenuStyle">@style/PopupMenu.GlassDark</item>
     </style>
+
     <style name="PopupMenu.GlassLight" parent="Widget.AppCompat.PopupMenu">
         <item name="android:popupBackground">@drawable/bg_popup_glass_light</item>
     </style>
@@ -44,19 +63,31 @@
         <item name="popupMenuStyle">@style/PopupMenu.GlassLight</item>
         <item name="android:popupMenuStyle">@style/PopupMenu.GlassLight</item>
     </style>
-    <style name="Dialog.Holo" parent="Theme.AppCompat.Dialog.Alert">
-        <item name="android:windowBackground">@drawable/bg_dialog_holo</item>
-        <item name="colorAccent">@color/holo_blue</item>
+
+    <!-- Dialog Styles (Material 3 28dp Corner Radius) -->
+    <style name="Dialog.Material" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog_material</item>
+        <item name="colorAccent">@color/md_theme_primary</item>
+        <item name="android:textColorPrimary">@color/md_theme_onSurface</item>
+        <item name="android:textColorSecondary">@color/md_theme_onSurfaceVariant</item>
     </style>
+    <style name="Dialog.Holo" parent="Dialog.Material" />
+
     <style name="Dialog.GlassDark" parent="Theme.AppCompat.Dialog.Alert">
         <item name="android:windowBackground">@drawable/bg_dialog_glass_dark</item>
         <item name="colorAccent">#FFFFFFFF</item>
+        <item name="android:textColorPrimary">#FFFFFFFF</item>
+        <item name="android:textColorSecondary">#B3FFFFFF</item>
     </style>
+
     <style name="Dialog.GlassLight" parent="Theme.AppCompat.Light.Dialog.Alert">
         <item name="android:windowBackground">@drawable/bg_dialog_glass_light</item>
-        <item name="colorAccent">#FF1C1C1E</item>
+        <item name="colorAccent">#FF181A20</item>
+        <item name="android:textColorPrimary">#FF1C1D22</item>
+        <item name="android:textColorSecondary">#B31C1D22</item>
     </style>
+
     <style name="SpinnerPopup" parent="Widget.AppCompat.Spinner">
-        <item name="android:popupBackground">@drawable/bg_popup_holo</item>
+        <item name="android:popupBackground">@drawable/bg_popup_material</item>
     </style>
 </resources>

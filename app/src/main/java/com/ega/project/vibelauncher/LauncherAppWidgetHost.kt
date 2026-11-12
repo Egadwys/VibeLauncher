@@ -4,8 +4,11 @@ import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
+import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.SizeF
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import kotlin.math.abs
@@ -47,12 +50,17 @@ class LauncherWidgetHostView(ctx: Context) : AppWidgetHostView(ctx) {
 
     override fun onTouchEvent(ev: MotionEvent): Boolean = if (fired) true else super.onTouchEvent(ev)
 
+    @Suppress("DEPRECATION")
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w > 0 && h > 0) {
             val d = resources.displayMetrics.density
             val wd = (w / d).toInt(); val hd = (h / d).toInt()
-            updateAppWidgetSize(null, wd, hd, wd, hd)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                updateAppWidgetSize(Bundle(), listOf(SizeF(wd.toFloat(), hd.toFloat())))
+            } else {
+                updateAppWidgetSize(null, wd, hd, wd, hd)
+            }
         }
     }
 

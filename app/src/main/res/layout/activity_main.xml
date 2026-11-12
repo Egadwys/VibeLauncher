@@ -4,6 +4,21 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Sumber blur untuk tema Liquid Glass: wallpaper. Hanya tampil saat tema glass aktif. -->
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/blur_target"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/wallpaper_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop" />
+    </eightbitlab.com.blurview.BlurTarget>
+
     <LinearLayout
         android:id="@+id/home_layer"
         android:layout_width="match_parent"
@@ -12,22 +27,31 @@
         android:orientation="vertical">
 
         <!-- Search bar atas (disembunyikan saat dock dua baris aktif) -->
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/search_bar_blur"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_search">
+
         <TextView
             android:id="@+id/search_bar"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_margin="12dp"
-            android:background="@drawable/bg_search"
+            android:layout_height="match_parent"
             android:clickable="true"
             android:drawableStart="@drawable/ic_search"
-            android:drawablePadding="12dp"
+            android:drawablePadding="14dp"
             android:focusable="true"
             android:gravity="center_vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
             android:text="@string/search"
-            android:textColor="#B3FFFFFF"
+            android:textColor="#CCFFFFFF"
             android:textSize="16sp" />
+        </eightbitlab.com.blurview.BlurView>
 
         <com.ega.project.vibelauncher.HomeGridLayout
             android:id="@+id/home_grid"
@@ -41,16 +65,25 @@
             android:id="@+id/dock_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#4033B5E5" />
+            android:background="#20FFFFFF"
+            android:visibility="gone" />
 
-        <LinearLayout
+        <eightbitlab.com.blurview.BlurView
             android:id="@+id/dock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_dock"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_dock">
+
+        <LinearLayout
+            android:id="@+id/dock_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Baris 1: 2 app, tombol semua aplikasi (tengah), 2 app -->
+            <!-- Baris 1: 2 app, tombol all apps (tengah), 2 app -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="84dp"
@@ -80,7 +113,7 @@
                     android:layout_weight="1"
                     android:background="@null"
                     android:contentDescription="@string/apps"
-                    android:padding="20dp"
+                    android:padding="18dp"
                     android:src="@drawable/ic_apps" />
 
                 <ImageView
@@ -107,24 +140,30 @@
                 android:layout_height="64dp"
                 android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/search_bar_dock"
+                <eightbitlab.com.blurview.BlurView
+                    android:id="@+id/search_bar_dock_blur"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:layout_gravity="center_vertical"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="12dp"
-                    android:background="@drawable/bg_search"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    android:background="@drawable/bg_search">
+
+                <TextView
+                    android:id="@+id/search_bar_dock"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:clickable="true"
                     android:drawableStart="@drawable/ic_search"
-                    android:drawablePadding="12dp"
+                    android:drawablePadding="14dp"
                     android:focusable="true"
                     android:gravity="center_vertical"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
                     android:text="@string/search"
-                    android:textColor="#B3FFFFFF"
+                    android:textColor="#CCFFFFFF"
                     android:textSize="16sp" />
+                </eightbitlab.com.blurview.BlurView>
 
                 <FrameLayout
                     android:id="@+id/dock_widget_container"
@@ -137,9 +176,10 @@
                     android:visibility="gone" />
             </FrameLayout>
         </LinearLayout>
+        </eightbitlab.com.blurview.BlurView>
     </LinearLayout>
 
-    <!-- Bar target drag: Hapus / Info aplikasi / Copot (muncul saat drag) -->
+    <!-- Bar target drag: Hapus / Info aplikasi / Copot (floating capsule modern) -->
     <FrameLayout
         android:id="@+id/drag_bar_wrap"
         android:layout_width="match_parent"
@@ -147,85 +187,117 @@
         android:fitsSystemWindows="true"
         android:visibility="gone">
 
-        <LinearLayout
+        <eightbitlab.com.blurview.BlurView
             android:id="@+id/drag_bar"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="#E6101010"
-            android:orientation="horizontal">
+            android:layout_height="60dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_dock"
+            android:elevation="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
 
             <TextView
                 android:id="@+id/drag_remove"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:drawableStart="@drawable/ic_delete"
+                android:drawablePadding="6dp"
                 android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="@string/drag_remove"
-                android:textColor="@color/holo_blue"
-                android:textSize="14sp" />
+                android:textColor="#FFFFFFFF"
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/drag_info"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:drawableStart="@drawable/ic_info"
+                android:drawablePadding="6dp"
                 android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="@string/app_info"
-                android:textColor="@color/holo_blue"
-                android:textSize="14sp" />
+                android:textColor="#FFFFFFFF"
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/drag_uninstall"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
+                android:drawableStart="@drawable/ic_uninstall"
+                android:drawablePadding="6dp"
                 android:gravity="center"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="@string/uninstall"
-                android:textColor="@color/holo_blue"
-                android:textSize="14sp" />
+                android:textColor="#FFFFFFFF"
+                android:textSize="13sp" />
         </LinearLayout>
+        </eightbitlab.com.blurview.BlurView>
     </FrameLayout>
 
-    <!-- App drawer: halaman digeser ke samping seperti Jelly Bean -->
-    <LinearLayout
+    <!-- App drawer: tampilan layar penuh Material / Liquid Glass -->
+    <eightbitlab.com.blurview.BlurView
         android:id="@+id/drawer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#EE000000"
-        android:fitsSystemWindows="true"
-        android:orientation="vertical"
+        android:background="#F212141A"
         android:visibility="gone">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:orientation="vertical">
+
+        <!-- Header Drawer: Material 3 / Liquid Glass -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal">
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
 
             <LinearLayout
                 android:id="@+id/drawer_title_block"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="16dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical"
                 android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/drawer_title"
                     android:layout_width="wrap_content"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:paddingEnd="16dp"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="12dp"
                     android:text="@string/apps"
-                    android:textAllCaps="true"
-                    android:textColor="@color/holo_blue"
-                    android:textSize="14sp"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <View
                     android:id="@+id/drawer_underline"
-                    android:layout_width="match_parent"
+                    android:layout_width="24dp"
                     android:layout_height="3dp"
-                    android:background="@color/holo_blue" />
+                    android:layout_marginTop="3dp"
+                    android:background="@color/md_theme_primary" />
             </LinearLayout>
 
             <View
@@ -237,55 +309,59 @@
             <EditText
                 android:id="@+id/drawer_search"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_weight="1"
-                android:background="@null"
+                android:background="@drawable/bg_search"
                 android:hint="@string/search_apps"
                 android:imeOptions="actionSearch|flagNoExtractUi"
                 android:importantForAutofill="no"
                 android:inputType="text"
                 android:maxLines="1"
                 android:paddingStart="16dp"
-                android:paddingEnd="8dp"
+                android:paddingEnd="16dp"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#80FFFFFF"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/drawer_search_btn"
-                android:layout_width="48dp"
-                android:layout_height="match_parent"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/bg_item"
                 android:contentDescription="@string/search_apps"
-                android:padding="12dp"
+                android:padding="11dp"
                 android:src="@drawable/ic_search" />
 
             <ImageView
                 android:id="@+id/drawer_play_btn"
-                android:layout_width="48dp"
-                android:layout_height="match_parent"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/bg_item"
                 android:contentDescription="@string/play_store"
-                android:padding="11dp"
+                android:padding="10dp"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/drawer_overflow"
-                android:layout_width="48dp"
-                android:layout_height="match_parent"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="@drawable/bg_item"
                 android:gravity="center"
                 android:text="&#8942;"
                 android:textColor="#FFFFFF"
-                android:textSize="24sp" />
+                android:textSize="22sp" />
         </LinearLayout>
 
         <View
             android:id="@+id/drawer_divider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="@color/holo_line" />
+            android:background="#1AFFFFFF" />
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/drawer_pager"
@@ -296,8 +372,9 @@
         <LinearLayout
             android:id="@+id/drawer_dots"
             android:layout_width="match_parent"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:gravity="center"
             android:orientation="horizontal" />
     </LinearLayout>
+    </eightbitlab.com.blurview.BlurView>
 </FrameLayout>

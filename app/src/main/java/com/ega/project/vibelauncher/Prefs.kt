@@ -20,7 +20,7 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putInt("drawer_cols", v).apply()
 
     var theme: String
-        get() = sp.getString("theme", Themes.HOLO) ?: Themes.HOLO
+        get() = Themes.normalize(sp.getString("theme", Themes.MATERIAL) ?: Themes.MATERIAL)
         set(v) = sp.edit().putString("theme", v).apply()
 
     /** Dock dua baris: baris bawah berisi search bar / widget Google Search. */
@@ -41,6 +41,16 @@ class Prefs(ctx: Context) {
     var defaultPrompted: Boolean
         get() = sp.getBoolean("default_prompted", false)
         set(v) = sp.edit().putBoolean("default_prompted", v).apply()
+
+    /** Blur BlurView di tema Liquid Glass (dock, search, drag bar, drawer). */
+    var blurEnabled: Boolean
+        get() = sp.getBoolean("blur_enabled", true)
+        set(v) = sp.edit().putBoolean("blur_enabled", v).apply()
+
+    /** Kekuatan blur 5..25 (batas 25 karena jalur RenderScript di API < 31). */
+    var blurRadius: Int
+        get() = sp.getInt("blur_radius", BLUR_DEFAULT).coerceIn(BLUR_MIN, BLUR_MAX)
+        set(v) = sp.edit().putInt("blur_radius", v.coerceIn(BLUR_MIN, BLUR_MAX)).apply()
 
     var haptics: Boolean
         get() = sp.getBoolean("haptics", true)
@@ -69,6 +79,9 @@ class Prefs(ctx: Context) {
 
     companion object {
         const val DOCK_SLOTS = 4
+        const val BLUR_MIN = 5
+        const val BLUR_MAX = 25
+        const val BLUR_DEFAULT = 22
     }
 
     fun homeItems(): MutableList<HomeItem> {

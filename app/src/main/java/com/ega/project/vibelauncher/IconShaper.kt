@@ -7,50 +7,39 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
 
-/** Membuat semua ikon menjadi rounded-square yang seragam (sentuhan Material). */
+/**
+ * Ikon polos: konten ikon tidak diubah sama sekali (tanpa tile, padding, gloss, border atau efek tema).
+ * Satu-satunya perlakuan: adaptive icon dipotong rounded-rect supaya bentuknya seragam.
+ * Ikon legacy ditampilkan apa adanya.
+ */
 object IconShaper {
-    private const val CORNER = 0.26f // rasio radius terhadap ukuran ikon
+    private const val CORNER = 0.27f // rasio sudut rounded
 
-    fun shape(res: Resources, src: Drawable, size: Int, glass: Boolean = false): Drawable {
+    fun shape(res: Resources, src: Drawable, size: Int): Drawable {
         val s = size.toFloat()
         val content = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val c = Canvas(content)
 
         if (Build.VERSION.SDK_INT >= 26 && src is AdaptiveIconDrawable) {
-            // Layer adaptive berukuran 108dp, area terlihat 72dp -> inset 25% tiap sisi
+            // Layer adaptive 108dp digambar pada skala yang sama dengan sistem (area terlihat 72dp)
             val inset = (s * 0.25f).toInt()
-            val l = -inset; val r = size + inset
+            val l = -inset
+            val r = size + inset
             src.background?.let { it.setBounds(l, l, r, r); it.draw(c) }
             src.foreground?.let { it.setBounds(l, l, r, r); it.draw(c) }
-        } else {
-            // Ikon legacy: taruh di atas tile terang agar bentuknya seragam
-            c.drawColor(0xFFECEFF1.toInt())
-            val pad = (s * 0.14f).toInt()
-            src.setBounds(pad, pad, size - pad, size - pad)
-            src.draw(c)
+
+            val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = BitmapShader(content, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+            }
+            val radius = s * CORNER
+            Canvas(out).drawRoundRect(RectF(0f, 0f, s, s), radius, radius, paint)
+            return BitmapDrawable(res, out)
         }
 
-        val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = BitmapShader(content, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        }
-        Canvas(out).drawRoundRect(RectF(0f, 0f, s, s), s * CORNER, s * CORNER, paint)
-        if (glass) {
-            // Liquid glass: kilau di bagian atas + tepi terang tipis
-            val c2 = Canvas(out)
-            val r = s * CORNER
-            val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = LinearGradient(0f, 0f, 0f, s * 0.6f, 0x55FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
-            }
-            c2.drawRoundRect(RectF(0f, 0f, s, s), r, r, gloss)
-            val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeWidth = s * 0.03f
-                shader = LinearGradient(0f, 0f, s, s, 0xCCFFFFFF.toInt(), 0x22FFFFFF, Shader.TileMode.CLAMP)
-            }
-            val inset = edge.strokeWidth / 2f
-            c2.drawRoundRect(RectF(inset, inset, s - inset, s - inset), r, r, edge)
-        }
-        return BitmapDrawable(res, out)
+        // Ikon legacy: apa adanya, tanpa latar tambahan
+        src.setBounds(0, 0, size, size)
+        src.draw(c)
+        return BitmapDrawable(res, content)
     }
 }
