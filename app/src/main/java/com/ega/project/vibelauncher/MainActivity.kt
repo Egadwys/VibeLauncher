@@ -14,8 +14,11 @@ import android.graphics.Rect
 import android.graphics.Color
 import android.view.DragEvent
 import android.view.HapticFeedbackConstants
-import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.ViewConfiguration
+import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.view.LayoutInflater
 import android.text.Editable
 import android.text.TextWatcher
@@ -89,8 +92,13 @@ class MainActivity : AppCompatActivity() {
     private var pending: Pending? = null
     private var drag: DragPayload? = null
     private var currentPopup: PopupMenu? = null
-    private lateinit var gestures: GestureDetector
     private var gestureBlocked = false
+    private var isDraggingDrawer = false
+    private var isDraggingDrawerDown = false
+    private var drawerTouchStartX = 0f
+    private var drawerTouchStartY = 0f
+    private var velocityTracker: VelocityTracker? = null
+    private var isDispatchedCancelToChildren = false
     private var lastDrawerPage = 0
     private var lastHlCol = -1
     private var lastHlRow = -1
@@ -117,11 +125,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         // Status bar & navigation bar transparan, konten tergambar di belakangnya
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = Color.TRANSPARENT
-        window.navigationBarColor = Color.TRANSPARENT
-        if (Build.VERSION.SDK_INT >= 29) {
-            window.isStatusBarContrastEnforced = false
-            window.isNavigationBarContrastEnforced = false
+        @Suppress("DEPRECATION")
+        if (Build.VERSION.SDK_INT < 35) {
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = Color.TRANSPARENT
+            if (Build.VERSION.SDK_INT >= 29) {
+                window.isStatusBarContrastEnforced = false
+                window.isNavigationBarContrastEnforced = false
+            }
         }
         setContentView(R.layout.activity_main)
         prefs = Prefs(this)
@@ -182,18 +193,6 @@ class MainActivity : AppCompatActivity() {
 
         setupHomeDrag()
         setupDock()
-        gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
-                if (e1 == null) return false
-                val dx = e2.x - e1.x
-                val dy = e2.y - e1.y
-                val min = 64 * resources.displayMetrics.density
-                if (abs(dy) < min || abs(dy) < abs(dx) * 2 || abs(vy) < 500) return false
-                onVerticalSwipe(up = dy < 0)
-                return false
-            }
-        })
-        gestures.setIsLongpressEnabled(false)
         setupDropTarget(dragRemove) { p -> removeDragged(p) }
         setupDropTarget(dragInfo) { p ->
             if (p.kind == HomeItem.KIND_APP) { openAppInfo(pkgOf(p.key)); true } else false
@@ -235,11 +234,136 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // ---------- gesture swipe ----------
+    // ---------- gesture swipe up & down (fluid mengikuti jari, tanpa bentrok longpress) ----------
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (ev.actionMasked == MotionEvent.ACTION_DOWN) gestureBlocked = isOnHomeWidget(ev.rawX, ev.rawY)
-        if (!gestureBlocked && drag == null && resizeOverlay == null) gestures.onTouchEvent(ev)
+        if (drag != null || resizeOverlay != null) {
+            isDraggingDrawer = false
+            isDraggingDrawerDown = false
+            velocityTracker?.recycle()
+            velocityTracker = null
+            return super.dispatchTouchEvent(ev)
+        }
+
+        val touchSlop = ViewConfiguration.get(this).scaledTouchSlop.toFloat()
+        val screenH = (window.decorView.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels).toFloat()
+
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                gestureBlocked = !drawerOpen && isOnHomeWidget(ev.rawX, ev.rawY)
+                drawerTouchStartX = ev.rawX
+                drawerTouchStartY = ev.rawY
+                isDraggingDrawer = false
+                isDraggingDrawerDown = false
+                isDispatchedCancelToChildren = false
+                velocityTracker?.recycle()
+                velocityTracker = VelocityTracker.obtain().apply { addMovement(ev) }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                velocityTracker?.addMovement(ev)
+                val dx = ev.rawX - drawerTouchStartX
+                val dy = ev.rawY - drawerTouchStartY
+
+                if (!gestureBlocked) {
+                    if (!drawerOpen) {
+                        // Di Home screen: deteksi geser ke atas
+                        if (!isDraggingDrawer) {
+                            if (dy < -touchSlop && abs(dy) > abs(dx) * 1.25f) {
+                                isDraggingDrawer = true
+                                haptic(gestureConst())
+                                cancelChildrenTouches(ev)
+                                prepareDrawerForDragging(screenH)
+                            } else if (dy > touchSlop * 2 && abs(dy) > abs(dx) * 1.5f) {
+                                expandNotifications()
+                                gestureBlocked = true
+                            }
+                        }
+
+                        if (isDraggingDrawer) {
+                            val targetTranslation = (screenH + dy).coerceIn(0f, screenH)
+                            drawer.translationY = targetTranslation
+                            val progress = 1f - (targetTranslation / screenH)
+                            drawer.alpha = progress.coerceIn(0.1f, 1f)
+                            homeLayer.alpha = (1f - progress * (if (Themes.isGlass(prefs.theme)) 0.85f else 1f)).coerceIn(0f, 1f)
+                            updateBlurProgress(progress)
+                            return true
+                        }
+                    } else {
+                        // Di Drawer: deteksi geser ke bawah untuk menutup
+                        if (!isDraggingDrawerDown && dy > touchSlop && dy > abs(dx) * 1.4f) {
+                            isDraggingDrawerDown = true
+                            cancelChildrenTouches(ev)
+                            drawer.animate().cancel()
+                            homeLayer.animate().cancel()
+                            homeLayer.visibility = View.VISIBLE
+                        }
+
+                        if (isDraggingDrawerDown) {
+                            val targetTranslation = dy.coerceIn(0f, screenH)
+                            drawer.translationY = targetTranslation
+                            val progress = 1f - (targetTranslation / screenH)
+                            drawer.alpha = progress.coerceIn(0.1f, 1f)
+                            homeLayer.alpha = (1f - progress * (if (Themes.isGlass(prefs.theme)) 0.85f else 1f)).coerceIn(0f, 1f)
+                            updateBlurProgress(progress)
+                            return true
+                        }
+                    }
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                velocityTracker?.addMovement(ev)
+                velocityTracker?.computeCurrentVelocity(1000)
+                val vy = velocityTracker?.yVelocity ?: 0f
+
+                if (isDraggingDrawer) {
+                    isDraggingDrawer = false
+                    val progress = 1f - (drawer.translationY / screenH)
+                    if (vy < -600f || progress > 0.30f) {
+                        settleDrawerOpen(screenH, vy)
+                    } else {
+                        settleDrawerClosed(screenH, vy)
+                    }
+                    velocityTracker?.recycle()
+                    velocityTracker = null
+                    return true
+                } else if (isDraggingDrawerDown) {
+                    isDraggingDrawerDown = false
+                    val progress = 1f - (drawer.translationY / screenH)
+                    if (vy > 600f || progress < 0.70f) {
+                        settleDrawerClosed(screenH, vy)
+                    } else {
+                        settleDrawerOpen(screenH, vy)
+                    }
+                    velocityTracker?.recycle()
+                    velocityTracker = null
+                    return true
+                }
+
+                velocityTracker?.recycle()
+                velocityTracker = null
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                if (isDraggingDrawer) {
+                    isDraggingDrawer = false
+                    settleDrawerClosed(screenH, 0f)
+                } else if (isDraggingDrawerDown) {
+                    isDraggingDrawerDown = false
+                    settleDrawerOpen(screenH, 0f)
+                }
+                velocityTracker?.recycle()
+                velocityTracker = null
+            }
+        }
+
         return super.dispatchTouchEvent(ev)
+    }
+
+    private fun cancelChildrenTouches(ev: MotionEvent) {
+        if (!isDispatchedCancelToChildren) {
+            isDispatchedCancelToChildren = true
+            val cancelEvent = MotionEvent.obtain(ev).apply { action = MotionEvent.ACTION_CANCEL }
+            super.dispatchTouchEvent(cancelEvent)
+            cancelEvent.recycle()
+        }
     }
 
     /** Swipe di atas widget dibiarkan untuk widget itu sendiri (mis. list yang bisa di-scroll). */
@@ -252,12 +376,6 @@ class MainActivity : AppCompatActivity() {
             if (c.getGlobalVisibleRect(r) && r.contains(x.toInt(), y.toInt())) return true
         }
         return false
-    }
-
-    private fun onVerticalSwipe(up: Boolean) {
-        if (drawer.visibility == View.VISIBLE) {
-            if (!up) closeDrawer() // swipe turun menutup drawer
-        } else if (up) { haptic(gestureConst()); openDrawer() } else { haptic(gestureConst()); expandNotifications() }
     }
 
     private fun expandNotifications() {
@@ -369,6 +487,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         homeGrid.setHighlightColor(accent)
+        updateBlurProgress(if (drawerOpen) 1f else 0f)
         updateSystemBars()
     }
 
@@ -955,35 +1074,125 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(res: Int) = Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
 
-    // ---------- drawer (halaman horizontal) ----------
-    private fun openDrawer() {
-        if (drawer.visibility == View.VISIBLE) return
-        drawerOpen = true
-        lastDrawerPage = 0
-        resetDrawerSearch()
+    // ---------- drawer (halaman horizontal & gesture fluid) ----------
+    private fun updateBlurProgress(progress: Float) {
         val t = Themes.normalize(prefs.theme)
         if (Themes.isGlass(t)) {
-            Themes.applyBlurIfSupported(homeLayer, 30f)
+            // Hardware blur pada wallpaper (SurfaceFlinger) di Android 12+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                    val params = window.attributes
+                    val maxBlurPx = 55 * resources.displayMetrics.density
+                    params.blurBehindRadius = (progress * maxBlurPx).toInt().coerceAtLeast(0)
+                    window.attributes = params
+                } catch (_: Throwable) {}
+            }
+            // Hardware blur pada layer home (apps & widgets di balik drawer)
+            if (progress > 0.05f) {
+                Themes.applyBlurIfSupported(homeLayer, (progress * 26f).coerceAtLeast(1f))
+            } else {
+                Themes.clearBlur(homeLayer)
+            }
+        } else {
+            Themes.clearBlur(homeLayer)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    val params = window.attributes
+                    params.blurBehindRadius = 0
+                    window.attributes = params
+                } catch (_: Throwable) {}
+            }
         }
+    }
+
+    private fun prepareDrawerForDragging(screenH: Float) {
+        drawerOpen = true
         drawer.animate().cancel()
-        drawer.alpha = 0f
-        drawer.translationY = 60 * resources.displayMetrics.density
-        drawer.visibility = View.VISIBLE
-        updateSystemBars()
-        drawer.animate().alpha(1f).translationY(0f).setDuration(220).start()
-        // Home (termasuk dock) disembunyikan / difilter supaya transparan indah
         homeLayer.animate().cancel()
-        val targetAlpha = if (Themes.isGlass(t)) 0.15f else 0f
-        homeLayer.animate().alpha(targetAlpha).setDuration(220).withEndAction {
-            if (drawerOpen && !Themes.isGlass(t)) homeLayer.visibility = View.INVISIBLE
-        }.start()
-        drawerPager.doOnLayout { buildDrawer() }
+        drawer.visibility = View.VISIBLE
+        drawer.translationY = screenH
+        drawer.alpha = 0f
+        homeLayer.visibility = View.VISIBLE
+        updateSystemBars()
+        if (drawerPager.adapter == null) {
+            buildDrawer()
+        }
+    }
+
+    private fun settleDrawerOpen(screenH: Float, vy: Float) {
+        val currentY = drawer.translationY
+        val distance = abs(currentY)
+        val duration = (260 * (distance / screenH)).toLong().coerceIn(120L, 280L)
+        drawer.animate().cancel()
+        homeLayer.animate().cancel()
+        drawer.animate()
+            .translationY(0f)
+            .alpha(1f)
+            .setDuration(duration)
+            .setInterpolator(DecelerateInterpolator(1.5f))
+            .withEndAction {
+                drawerOpen = true
+                drawer.translationY = 0f
+                drawer.alpha = 1f
+                val t = Themes.normalize(prefs.theme)
+                if (!Themes.isGlass(t)) homeLayer.visibility = View.INVISIBLE
+                updateBlurProgress(1f)
+                updateSystemBars()
+            }
+            .start()
+
+        val targetAlpha = if (Themes.isGlass(prefs.theme)) 0.15f else 0f
+        homeLayer.animate()
+            .alpha(targetAlpha)
+            .setDuration(duration)
+            .start()
+
+        updateBlurProgress(1f)
+    }
+
+    private fun settleDrawerClosed(screenH: Float, vy: Float) {
+        val currentY = drawer.translationY
+        val distance = abs(screenH - currentY)
+        val duration = (260 * (distance / screenH)).toLong().coerceIn(120L, 280L)
+        drawer.animate().cancel()
+        homeLayer.animate().cancel()
+        homeLayer.visibility = View.VISIBLE
+        homeLayer.animate()
+            .alpha(1f)
+            .setDuration(duration)
+            .start()
+
+        drawer.animate()
+            .translationY(screenH)
+            .alpha(0f)
+            .setDuration(duration)
+            .setInterpolator(DecelerateInterpolator(1.5f))
+            .withEndAction {
+                drawerOpen = false
+                drawer.visibility = View.GONE
+                drawer.translationY = 0f
+                resetDrawerSearch()
+                updateBlurProgress(0f)
+                updateSystemBars()
+            }
+            .start()
+    }
+
+    private fun openDrawer() {
+        if (drawer.visibility == View.VISIBLE && drawerOpen && !isDraggingDrawer) return
+        val screenH = (window.decorView.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels).toFloat()
+        prepareDrawerForDragging(screenH)
+        settleDrawerOpen(screenH, 0f)
     }
 
     private fun buildDrawer() {
         val w = drawerPager.width
         val h = drawerPager.height
-        if (w <= 0 || h <= 0) return
+        if (w <= 0 || h <= 0) {
+            drawerPager.doOnLayout { buildDrawer() }
+            return
+        }
         val cols = prefs.drawerCols
         val cellW = w / cols
         val cellH = (cellW * 1.15f).toInt()
@@ -1071,18 +1280,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun closeDrawer() {
         if (drawer.visibility != View.VISIBLE || !drawerOpen) return
-        drawerOpen = false
-        resetDrawerSearch()
-        Themes.clearBlur(homeLayer)
-        updateSystemBars()
-        homeLayer.animate().cancel()
-        homeLayer.visibility = View.VISIBLE
-        homeLayer.animate().alpha(1f).setDuration(180).start()
-        drawer.animate().cancel()
-        drawer.animate().alpha(0f).translationY(60 * resources.displayMetrics.density)
-            .setDuration(180).withEndAction {
-                if (!drawerOpen) { drawer.visibility = View.GONE }
-            }.start()
+        val screenH = (window.decorView.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels).toFloat()
+        settleDrawerClosed(screenH, 0f)
     }
 
     // ---------- popup & dialog: bulat, mengikuti tema ----------
