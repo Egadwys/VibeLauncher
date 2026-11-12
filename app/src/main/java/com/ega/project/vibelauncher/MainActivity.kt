@@ -22,6 +22,7 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.view.LayoutInflater
 import android.text.Editable
+import android.util.Log
 import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -276,7 +277,10 @@ class MainActivity : AppCompatActivity() {
                 val dy = ev.rawY - drawerTouchStartY
 
                 if (!gestureBlocked) {
-                    if (!drawerOpen) {
+                    // prepareDrawerForDragging() sudah set drawerOpen = true di awal drag naik,
+                    // jadi selama isDraggingDrawer masih aktif tetap pakai jalur "geser naik"
+                    // (kalau tidak, drawer berhenti mengikuti jari dan salah masuk jalur "geser turun").
+                    if (!drawerOpen || isDraggingDrawer) {
                         // Di Home screen: deteksi geser ke atas
                         if (!isDraggingDrawer) {
                             if (dy < -touchSlop && abs(dy) > abs(dx) * 1.25f) {
@@ -477,8 +481,15 @@ class MainActivity : AppCompatActivity() {
         }
         executor.execute {
             val d = try {
-                if (wm.wallpaperInfo != null) null else wm.drawable // live wallpaper -> tidak bisa di-snapshot
-            } catch (_: Throwable) { null }
+                if (wm.wallpaperInfo != null) {
+                    Log.w("VibeBlur", "Live wallpaper terdeteksi -> BlurView tidak bisa dipakai")
+                    null
+                } else wm.drawable
+            } catch (e: Throwable) {
+                Log.w("VibeBlur", "Gagal baca wallpaper (kemungkinan tanpa izin storage di Android 13+)", e)
+                null
+            }
+            Log.i("VibeBlur", "wallpaper drawable=${d != null}, crossWindowBlur=${crossWindowBlurOk()}")
             runOnUiThread {
                 if (isDestroyed || isFinishing) return@runOnUiThread
                 if (d != null && Themes.isGlass(prefs.theme) && prefs.blurEnabled) {
@@ -495,6 +506,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    /** true kalau blur window (FLAG_BLUR_BEHIND) benar-benar didukung & nyala di device ini. */
+    private fun crossWindowBlurOk(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            try { windowManager.isCrossWindowBlurEnabled } catch (_: Throwable) { false }
 
     // ---------- tema ----------
     /** Terapkan styling Material Design & Real Liquid Glass secara menyeluruh. */
@@ -531,7 +547,8 @@ class MainActivity : AppCompatActivity() {
         btnApps.imageTintList = ColorStateList.valueOf(if (glass && light) 0xFF181A20.toInt() else Color.WHITE)
 
         // Drawer: latar belakang dan aksen Material / Liquid Glass
-        val hasBlur = blurOn || (prefs.blurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        // Tint tipis hanya kalau memang ada blur di bawahnya; kalau tidak, pakai latar lebih pekat
+        val hasBlur = blurOn || (glass && prefs.blurEnabled && crossWindowBlurOk())
         drawer.setBackgroundColor(Themes.drawerBg(t, hasBlur))
         (drawer as BlurView).apply {
             setBlurEnabled(blurOn)
