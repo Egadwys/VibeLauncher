@@ -1107,10 +1107,6 @@ class MainActivity : AppCompatActivity() {
         c.isAppearanceLightStatusBars = isLight
         c.isAppearanceLightNavigationBars = isLight
     }
-        val c = WindowInsetsControllerCompat(window, window.decorView)
-        c.isAppearanceLightStatusBars = false
-        c.isAppearanceLightNavigationBars = false
-    }
 
     // ---------- haptic ----------
     private fun haptic(type: Int) {
