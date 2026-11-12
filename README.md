@@ -19,6 +19,7 @@ Launcher Android modern dengan perpaduan **Material Design 3** dan **Real Liquid
   - Hardware backdrop blur di Android 12+ (`RenderEffect.createBlurEffect`) saat app drawer dibuka, mengaburkan wallpaper dan widget di latar belakang layaknya kaca buram asli.
   - Ikon aplikasi dengan sentuhan Liquid Glass: kilau specular gloss miring dan tepi bevel kaca.
   - Floating capsule dock & drag target bar terapung dengan efek kaca cair.
+  - **BlurView ([Dimezis/BlurView](https://github.com/Dimezis/BlurView) 3.2.0)**: dock, search bar, drag bar, dan app drawer memblur wallpaper secara real-time (RenderEffect di API 31+, RenderScript di bawahnya). Aktif hanya di tema glass; Material tetap panel solid. Kalau wallpaper tidak bisa dibaca (live wallpaper / tanpa izin), otomatis fallback ke panel translucent + blur window bawaan Android 12+.
 - **Tema Tersedia (Kustomisasi)**:
   - *Material Design (Default)*: Elegan, bersih, dengan kontras tinggi dan aksen Material 3.
   - *Real Liquid Glass – Gelap*: Panel kaca buram gelap berbayang dengan kilau putih bersih.

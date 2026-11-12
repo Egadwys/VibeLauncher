@@ -1,5 +1,6 @@
 package com.ega.project.vibelauncher
 
+import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.*
@@ -45,6 +46,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.widget.TextViewCompat
 import androidx.core.view.doOnLayout
 import androidx.viewpager2.widget.ViewPager2
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -77,8 +80,14 @@ class MainActivity : AppCompatActivity() {
     private var drawerOpen = false
     private lateinit var drawerPager: ViewPager2
     private lateinit var drawerDots: LinearLayout
-    private lateinit var searchTop: View
-    private lateinit var searchDock: View
+    private lateinit var searchTop: View   // BlurView pembungkus search bar atas
+    private lateinit var searchDock: View  // BlurView pembungkus search bar dock
+    private lateinit var searchTopText: TextView
+    private lateinit var searchDockText: TextView
+    private lateinit var blurTarget: BlurTarget
+    private lateinit var wallpaperBg: ImageView
+    private var wallpaperReady = false
+    private var loadedWallpaperId = Int.MIN_VALUE
     private lateinit var dockRow2: View
     private lateinit var dockWidgetContainer: FrameLayout
     private lateinit var dragBarWrap: View
@@ -163,18 +172,21 @@ class MainActivity : AppCompatActivity() {
             if (id == EditorInfo.IME_ACTION_SEARCH) { drawerResults().firstOrNull()?.let { launch(it) }; true } else false
         }
         drawerDots = findViewById(R.id.drawer_dots)
-        searchTop = findViewById(R.id.search_bar)
-        searchDock = findViewById(R.id.search_bar_dock)
+        searchTop = findViewById(R.id.search_bar_blur)
+        searchDock = findViewById(R.id.search_bar_dock_blur)
+        searchTopText = findViewById(R.id.search_bar)
+        searchDockText = findViewById(R.id.search_bar_dock)
         dockRow2 = findViewById(R.id.dock_search_row)
         dockWidgetContainer = findViewById(R.id.dock_widget_container)
         dragBarWrap = findViewById(R.id.drag_bar_wrap)
         dragRemove = findViewById(R.id.drag_remove)
         dragInfo = findViewById(R.id.drag_info)
         dragUninstall = findViewById(R.id.drag_uninstall)
+        setupBlurViews()
 
         findViewById<View>(R.id.btn_apps).setOnClickListener { haptic(HapticFeedbackConstants.VIRTUAL_KEY); openDrawer() }
-        searchTop.setOnClickListener { openSearch() }
-        searchDock.setOnClickListener { openSearch() }
+        searchTopText.setOnClickListener { openSearch() }
+        searchDockText.setOnClickListener { openSearch() }
         homeGrid.setOnLongClickListener { showHomeMenu(); true } // area kosong
         findViewById<View>(R.id.drawer_overflow).setOnClickListener { v ->
             PopupMenu(popupCtx(), v).apply {
@@ -405,6 +417,7 @@ class MainActivity : AppCompatActivity() {
             loadApps()
         }
         currentThemeKey = t
+        refreshBlurSource()
         render() // terapkan ulang setelah kembali dari Settings
     }
 
@@ -429,6 +442,60 @@ class MainActivity : AppCompatActivity() {
         applyDock()
     }
 
+    // ---------- BlurView (Liquid Glass) ----------
+    /** Hubungkan semua BlurView ke BlurTarget (wallpaper). Dipanggil sekali di onCreate. */
+    private fun setupBlurViews() {
+        blurTarget = findViewById(R.id.blur_target)
+        wallpaperBg = findViewById(R.id.wallpaper_bg)
+        listOf(
+            R.id.search_bar_blur, R.id.search_bar_dock_blur, R.id.dock, R.id.drag_bar
+        ).forEach {
+            findViewById<BlurView>(it).setupWith(blurTarget).setBlurRadius(Themes.GLASS_BLUR_RADIUS)
+        }
+        findViewById<BlurView>(R.id.drawer).setupWith(blurTarget).setBlurRadius(Themes.GLASS_BLUR_RADIUS_DRAWER)
+    }
+
+    /**
+     * BlurView hanya bisa mengblur view di dalam hierarchy, bukan wallpaper window.
+     * Jadi di tema glass wallpaper statis dimuat ke ImageView di dalam BlurTarget.
+     * Kalau wallpaper tidak bisa dibaca (live wallpaper / tanpa izin), blur dimatikan
+     * dan tampilan kembali ke panel kaca translucent + blur window bawaan (Android 12+).
+     */
+    private fun refreshBlurSource() {
+        if (!(Themes.isGlass(prefs.theme) && prefs.blurEnabled)) {
+            wallpaperReady = false
+            loadedWallpaperId = Int.MIN_VALUE
+            blurTarget.visibility = View.GONE
+            wallpaperBg.setImageDrawable(null)
+            return
+        }
+        val wm = WallpaperManager.getInstance(this)
+        val id = if (Build.VERSION.SDK_INT >= 24) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else Int.MIN_VALUE + 1
+        if (wallpaperReady && id == loadedWallpaperId && Build.VERSION.SDK_INT >= 24) {
+            blurTarget.visibility = View.VISIBLE
+            return
+        }
+        executor.execute {
+            val d = try {
+                if (wm.wallpaperInfo != null) null else wm.drawable // live wallpaper -> tidak bisa di-snapshot
+            } catch (_: Throwable) { null }
+            runOnUiThread {
+                if (isDestroyed || isFinishing) return@runOnUiThread
+                if (d != null && Themes.isGlass(prefs.theme) && prefs.blurEnabled) {
+                    wallpaperBg.setImageDrawable(d)
+                    blurTarget.visibility = View.VISIBLE
+                    wallpaperReady = true
+                    loadedWallpaperId = id
+                } else {
+                    wallpaperBg.setImageDrawable(null)
+                    blurTarget.visibility = View.GONE
+                    wallpaperReady = false
+                }
+                applyTheme()
+            }
+        }
+    }
+
     // ---------- tema ----------
     /** Terapkan styling Material Design & Real Liquid Glass secara menyeluruh. */
     private fun applyTheme() {
@@ -437,15 +504,18 @@ class MainActivity : AppCompatActivity() {
         val light = Themes.isLight(t)
         val d = resources.displayMetrics.density
         val accent = Themes.accent(this, t)
+        val blurOn = glass && prefs.blurEnabled && wallpaperReady // BlurView: tema glass + switch nyala + wallpaper siap
+        val br = prefs.blurRadius.toFloat()
 
-        fun styleSearch(tv: TextView) {
-            tv.background = Themes.panel(this, t, 28f)
+        fun styleSearch(wrap: View, tv: TextView) {
+            Themes.styleBlurPanel(wrap as BlurView, t, 28f, blurOn, br)
+            tv.background = null
             val textColor = if (glass && light) 0xFF181A20.toInt() else 0xE6FFFFFF.toInt()
             tv.setTextColor(textColor)
             TextViewCompat.setCompoundDrawableTintList(tv, ColorStateList.valueOf(textColor))
         }
-        styleSearch(searchTop as TextView)
-        styleSearch(searchDock as TextView)
+        styleSearch(searchTop, searchTopText)
+        styleSearch(searchDock, searchDockText)
 
         // Dock: panel melayang capsule Material / Real Liquid Glass
         val dock = findViewById<View>(R.id.dock)
@@ -453,7 +523,7 @@ class MainActivity : AppCompatActivity() {
         val m = (16 * d).toInt()
         lp.setMargins(m, 0, m, (12 * d).toInt())
         dock.layoutParams = lp
-        dock.background = Themes.panel(this, t, 32f)
+        Themes.styleBlurPanel(dock as BlurView, t, 32f, blurOn, br)
         findViewById<View>(R.id.dock_divider).visibility = View.GONE
 
         // Tombol All Apps di dock
@@ -461,8 +531,12 @@ class MainActivity : AppCompatActivity() {
         btnApps.imageTintList = ColorStateList.valueOf(if (glass && light) 0xFF181A20.toInt() else Color.WHITE)
 
         // Drawer: latar belakang dan aksen Material / Liquid Glass
-        val hasBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val hasBlur = blurOn || (prefs.blurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
         drawer.setBackgroundColor(Themes.drawerBg(t, hasBlur))
+        (drawer as BlurView).apply {
+            setBlurEnabled(blurOn)
+            if (blurOn) setBlurRadius(minOf(br + 3f, Prefs.BLUR_MAX.toFloat()))
+        }
         val titleColor = if (glass && light) 0xFF181A20.toInt() else Color.WHITE
         findViewById<TextView>(R.id.drawer_title).setTextColor(titleColor)
         findViewById<View>(R.id.drawer_underline).apply {
@@ -478,7 +552,7 @@ class MainActivity : AppCompatActivity() {
 
         // Bar target drag: floating capsule di atas
         val dragBar = findViewById<View>(R.id.drag_bar)
-        dragBar.background = Themes.panel(this, t, 30f)
+        Themes.styleBlurPanel(dragBar as BlurView, t, 30f, blurOn, br)
         val dragActionColor = if (glass && light) 0xFF181A20.toInt() else Color.WHITE
         for (id in listOf(R.id.drag_remove, R.id.drag_info, R.id.drag_uninstall)) {
             val tv = findViewById<TextView>(id)
@@ -1077,20 +1151,22 @@ class MainActivity : AppCompatActivity() {
     // ---------- drawer (halaman horizontal & gesture fluid) ----------
     private fun updateBlurProgress(progress: Float) {
         val t = Themes.normalize(prefs.theme)
-        if (Themes.isGlass(t)) {
+        val k = prefs.blurRadius / Prefs.BLUR_DEFAULT.toFloat() // skala kekuatan blur dari Settings
+        if (Themes.isGlass(t) && prefs.blurEnabled) {
             // Hardware blur pada wallpaper (SurfaceFlinger) di Android 12+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 try {
                     window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                     val params = window.attributes
-                    val maxBlurPx = 55 * resources.displayMetrics.density
-                    params.blurBehindRadius = (progress * maxBlurPx).toInt().coerceAtLeast(0)
+                    val maxBlurPx = 55 * k * resources.displayMetrics.density
+                    // Kalau BlurView sudah memblur wallpaper, blur window tidak perlu (hindari dobel blur)
+                    params.blurBehindRadius = if (wallpaperReady) 0 else (progress * maxBlurPx).toInt().coerceAtLeast(0)
                     window.attributes = params
                 } catch (_: Throwable) {}
             }
             // Hardware blur pada layer home (apps & widgets di balik drawer)
             if (progress > 0.05f) {
-                Themes.applyBlurIfSupported(homeLayer, (progress * 26f).coerceAtLeast(1f))
+                Themes.applyBlurIfSupported(homeLayer, (progress * 26f * k).coerceAtLeast(1f))
             } else {
                 Themes.clearBlur(homeLayer)
             }

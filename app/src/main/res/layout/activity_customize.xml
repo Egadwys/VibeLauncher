@@ -89,6 +89,62 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Card: Blur Liquid Glass -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="@color/md_theme_surface_variant"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#22FFFFFF"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_blur"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/blur_enable"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:useMaterialThemeColors="true" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/blur_hint"
+                    android:textColor="@color/md_theme_onSurfaceVariant"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/label_blur_radius"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp" />
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/slider_blur_radius"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:stepSize="1"
+                    android:valueFrom="5"
+                    android:valueTo="25"
+                    app:thumbColor="@color/md_theme_primary"
+                    app:trackColorActive="@color/md_theme_primary"
+                    app:trackColorInactive="#33FFFFFF" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Card: Grid Settings -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

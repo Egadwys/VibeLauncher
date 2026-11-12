@@ -39,6 +39,9 @@
     <string name="dock_full">Dock is full</string>
     <string name="choose_app">Choose app</string>
     <string name="haptics">Haptic feedback</string>
+    <string name="blur_enable">Blur background (Liquid Glass)</string>
+    <string name="blur_hint">Only applies to the Liquid Glass themes. Turn off to save battery.</string>
+    <string name="blur_strength">Blur strength: %1$d</string>
     <string name="search_apps">Search apps</string>
     <string name="play_store">Play Store</string>
     <string name="resize">Resize</string>

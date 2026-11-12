@@ -4,6 +4,21 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Sumber blur untuk tema Liquid Glass: wallpaper. Hanya tampil saat tema glass aktif. -->
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/blur_target"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/wallpaper_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop" />
+    </eightbitlab.com.blurview.BlurTarget>
+
     <LinearLayout
         android:id="@+id/home_layer"
         android:layout_width="match_parent"
@@ -12,15 +27,20 @@
         android:orientation="vertical">
 
         <!-- Search bar atas (disembunyikan saat dock dua baris aktif) -->
-        <TextView
-            android:id="@+id/search_bar"
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/search_bar_blur"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="12dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="8dp"
-            android:background="@drawable/bg_search"
+            android:background="@drawable/bg_search">
+
+        <TextView
+            android:id="@+id/search_bar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:clickable="true"
             android:drawableStart="@drawable/ic_search"
             android:drawablePadding="14dp"
@@ -31,6 +51,7 @@
             android:text="@string/search"
             android:textColor="#CCFFFFFF"
             android:textSize="16sp" />
+        </eightbitlab.com.blurview.BlurView>
 
         <com.ega.project.vibelauncher.HomeGridLayout
             android:id="@+id/home_grid"
@@ -47,14 +68,19 @@
             android:background="#20FFFFFF"
             android:visibility="gone" />
 
-        <LinearLayout
+        <eightbitlab.com.blurview.BlurView
             android:id="@+id/dock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_dock"
+            android:background="@drawable/bg_dock">
+
+        <LinearLayout
+            android:id="@+id/dock_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <!-- Baris 1: 2 app, tombol all apps (tengah), 2 app -->
@@ -114,14 +140,19 @@
                 android:layout_height="64dp"
                 android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/search_bar_dock"
+                <eightbitlab.com.blurview.BlurView
+                    android:id="@+id/search_bar_dock_blur"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="14dp"
                     android:layout_marginEnd="14dp"
-                    android:background="@drawable/bg_search"
+                    android:background="@drawable/bg_search">
+
+                <TextView
+                    android:id="@+id/search_bar_dock"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:clickable="true"
                     android:drawableStart="@drawable/ic_search"
                     android:drawablePadding="14dp"
@@ -132,6 +163,7 @@
                     android:text="@string/search"
                     android:textColor="#CCFFFFFF"
                     android:textSize="16sp" />
+                </eightbitlab.com.blurview.BlurView>
 
                 <FrameLayout
                     android:id="@+id/dock_widget_container"
@@ -144,6 +176,7 @@
                     android:visibility="gone" />
             </FrameLayout>
         </LinearLayout>
+        </eightbitlab.com.blurview.BlurView>
     </LinearLayout>
 
     <!-- Bar target drag: Hapus / Info aplikasi / Copot (floating capsule modern) -->
@@ -154,7 +187,7 @@
         android:fitsSystemWindows="true"
         android:visibility="gone">
 
-        <LinearLayout
+        <eightbitlab.com.blurview.BlurView
             android:id="@+id/drag_bar"
             android:layout_width="match_parent"
             android:layout_height="60dp"
@@ -163,7 +196,11 @@
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="8dp"
             android:background="@drawable/bg_dock"
-            android:elevation="6dp"
+            android:elevation="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="8dp"
@@ -211,17 +248,22 @@
                 android:textColor="#FFFFFFFF"
                 android:textSize="13sp" />
         </LinearLayout>
+        </eightbitlab.com.blurview.BlurView>
     </FrameLayout>
 
     <!-- App drawer: tampilan layar penuh Material / Liquid Glass -->
-    <LinearLayout
+    <eightbitlab.com.blurview.BlurView
         android:id="@+id/drawer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#F212141A"
-        android:fitsSystemWindows="true"
-        android:orientation="vertical"
         android:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:orientation="vertical">
 
         <!-- Header Drawer: Material 3 / Liquid Glass -->
         <LinearLayout
@@ -334,4 +376,5 @@
             android:gravity="center"
             android:orientation="horizontal" />
     </LinearLayout>
+    </eightbitlab.com.blurview.BlurView>
 </FrameLayout>

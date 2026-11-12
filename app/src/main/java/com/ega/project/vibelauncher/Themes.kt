@@ -2,6 +2,7 @@ package com.ega.project.vibelauncher
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Outline
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
@@ -9,7 +10,9 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.os.Build
 import android.view.View
+import android.view.ViewOutlineProvider
 import androidx.core.content.ContextCompat
+import eightbitlab.com.blurview.BlurView
 
 /**
  * Visual Design Engine: Material Design & Real Liquid Glass.
@@ -19,6 +22,10 @@ object Themes {
     const val GLASS_DARK = "glass_dark"
     const val GLASS_LIGHT = "glass_light"
     const val HOLO = "holo" // legacy alias mapped to MATERIAL
+
+    /** Radius blur BlurView (<= 25 supaya aman di jalur RenderScript API < 31). */
+    const val GLASS_BLUR_RADIUS = 22f
+    const val GLASS_BLUR_RADIUS_DRAWER = 25f
 
     fun normalize(t: String): String = if (t == HOLO) MATERIAL else t
     fun isGlass(t: String): Boolean = t == GLASS_DARK || t == GLASS_LIGHT
@@ -108,6 +115,26 @@ object Themes {
         val t = normalize(theme)
         return if (isGlass(t)) liquidGlassPanel(ctx, isLight(t), radiusDp)
         else materialPanel(ctx, radiusDp)
+    }
+
+    /**
+     * Styling sebuah [BlurView] sebagai panel tema.
+     * - Glass + sumber blur siap  : blur aktif, panel kaca translucent di atasnya.
+     * - Selain itu (Material, atau wallpaper tidak bisa dibaca): blur mati, panel biasa.
+     * Sudut dibulatkan lewat outline + clip supaya blur tidak bocor keluar capsule.
+     */
+    fun styleBlurPanel(view: BlurView, theme: String, radiusDp: Float, blurOn: Boolean, blurRadius: Float = GLASS_BLUR_RADIUS) {
+        val ctx = view.context
+        val r = radiusDp * ctx.resources.displayMetrics.density
+        view.background = panel(ctx, theme, radiusDp)
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(v: View, outline: Outline) {
+                outline.setRoundRect(0, 0, v.width, v.height, r)
+            }
+        }
+        view.clipToOutline = true
+        view.setBlurEnabled(blurOn)
+        if (blurOn) view.setBlurRadius(blurRadius)
     }
 
     /** Terapkan blur hardware pada Android 12+ untuk Real Liquid Glass. */

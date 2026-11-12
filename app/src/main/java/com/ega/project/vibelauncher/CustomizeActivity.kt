@@ -40,6 +40,16 @@ class CustomizeActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
+        // Blur Liquid Glass (BlurView): switch + kekuatan
+        val swBlur = findViewById<SwitchMaterial>(R.id.switch_blur)
+        val sliderBlur = findViewById<Slider>(R.id.slider_blur_radius)
+        val labelBlur = findViewById<TextView>(R.id.label_blur_radius)
+        bind(R.id.label_blur_radius, R.id.slider_blur_radius, R.string.blur_strength, p.blurRadius) { p.blurRadius = it }
+        fun enableBlurUi(on: Boolean) { sliderBlur.isEnabled = on; labelBlur.alpha = if (on) 1f else 0.4f }
+        swBlur.isChecked = p.blurEnabled
+        enableBlurUi(p.blurEnabled)
+        swBlur.setOnCheckedChangeListener { _, on -> p.blurEnabled = on; enableBlurUi(on) }
+
         val swHaptics = findViewById<SwitchMaterial>(R.id.switch_haptics)
         swHaptics.isChecked = p.haptics
         swHaptics.setOnCheckedChangeListener { _, on -> p.haptics = on }

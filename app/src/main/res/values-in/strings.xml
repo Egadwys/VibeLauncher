@@ -39,6 +39,9 @@
     <string name="dock_full">Dock penuh</string>
     <string name="choose_app">Pilih aplikasi</string>
     <string name="haptics">Umpan balik haptik</string>
+    <string name="blur_enable">Blur latar (Liquid Glass)</string>
+    <string name="blur_hint">Hanya berlaku di tema Liquid Glass. Matikan untuk hemat baterai.</string>
+    <string name="blur_strength">Kekuatan blur: %1$d</string>
     <string name="search_apps">Cari aplikasi</string>
     <string name="play_store">Play Store</string>
     <string name="resize">Ubah ukuran</string>
