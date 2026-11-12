@@ -412,15 +412,17 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
     }
 
-    private var currentThemeKey = ""
+    private var drawerSig = ""
 
     override fun onResume() {
         super.onResume()
-        val t = Themes.normalize(prefs.theme)
-        if (currentThemeKey.isNotEmpty() && Themes.isGlass(currentThemeKey) != Themes.isGlass(t)) {
-            loadApps()
+        // Tema / jumlah kolom drawer bisa berubah di Settings -> adapter drawer harus dibuat ulang
+        val sig = "${Themes.normalize(prefs.theme)}|${prefs.drawerCols}"
+        if (drawerSig.isNotEmpty() && drawerSig != sig) {
+            drawerPager.adapter = null
+            if (drawerOpen) buildDrawer()
         }
-        currentThemeKey = t
+        drawerSig = sig
         refreshBlurSource()
         render() // terapkan ulang setelah kembali dari Settings
     }
@@ -434,7 +436,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- data & render ----------
     private fun loadApps() {
         executor.execute {
-            val list = AppRepository.load(this, Themes.isGlass(prefs.theme))
+            val list = AppRepository.load(this)
             runOnUiThread { apps = list; appsLoaded = true; renderHome(); renderDock(); bindPlayStore() }
         }
     }
@@ -571,6 +573,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.drawer_divider).setBackgroundColor(if (glass && light) 0x1A000000 else 0x1AFFFFFF)
         findViewById<TextView>(R.id.drawer_overflow).setTextColor(titleColor)
         drawerSearchBtn.imageTintList = ColorStateList.valueOf(titleColor)
+        for (b in listOf<View>(drawerSearchBtn, drawerPlayBtn, findViewById<View>(R.id.drawer_overflow))) {
+            b.background = Themes.rippleBg(t, 16f, d)
+        }
         drawerSearch.setTextColor(titleColor)
         drawerSearch.setHintTextColor(if (glass && light) 0x80181A20.toInt() else 0x80FFFFFF.toInt())
         drawerSearch.background = Themes.panel(this, t, 22f)
@@ -1012,8 +1017,17 @@ class MainActivity : AppCompatActivity() {
             drawerOpen = false
             drawer.animate().cancel(); drawer.visibility = View.GONE
             homeLayer.animate().cancel(); homeLayer.alpha = 1f; homeLayer.visibility = View.VISIBLE
+            // Drawer tertutup: lepas semua blur yang tadi dipasang untuk drawer
+            // (RenderEffect di homeLayer + blur-behind window), kalau tidak home tetap buram.
+            clearDrawerBlur()
             updateSystemBars()
         }
+    }
+
+    /** Hapus blur drawer dari layer home & window. */
+    private fun clearDrawerBlur() {
+        Themes.clearBlur(homeLayer)
+        updateBlurProgress(0f)
     }
 
     private fun showDrawerMenu(anchor: View, app: AppInfo) {
@@ -1059,6 +1073,7 @@ class MainActivity : AppCompatActivity() {
         dragBarWrap.visibility = View.GONE
         dockSlots.forEach { it.background = null }
         if (!dropped && !p.fromHome) openDrawer() // drag dibatalkan -> kembali ke drawer
+        else if (!drawerOpen) clearDrawerBlur() // pengaman: pastikan home bersih dari blur
     }
 
     private fun dropOnHome(x: Float, y: Float): Boolean {

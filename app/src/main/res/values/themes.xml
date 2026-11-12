@@ -19,7 +19,7 @@
 
     <style name="Theme.VibeLauncher" parent="Theme.HoloLauncher" />
 
-    <!-- Modern Settings Theme -->
+    <!-- Settings: window transparan + wallpaper; warna latar (solid / glass) diatur SettingsUi per tema -->
     <style name="Theme.HoloSettings" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorPrimaryVariant">@color/holo_blue_dark</item>
@@ -27,9 +27,11 @@
         <item name="colorSecondary">@color/md_theme_secondary</item>
         <item name="colorSurface">@color/md_theme_surface</item>
         <item name="colorOnSurface">@color/md_theme_onSurface</item>
-        <item name="android:windowBackground">@color/md_theme_surface</item>
-        <item name="android:statusBarColor">@color/md_theme_surface</item>
-        <item name="android:navigationBarColor">@color/md_theme_surface</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
     <style name="Theme.VibeSettings" parent="Theme.HoloSettings" />
@@ -80,7 +82,7 @@
 
     <style name="Dialog.GlassLight" parent="Theme.AppCompat.Light.Dialog.Alert">
         <item name="android:windowBackground">@drawable/bg_dialog_glass_light</item>
-        <item name="colorAccent">@color/md_theme_primary</item>
+        <item name="colorAccent">#FF181A20</item>
         <item name="android:textColorPrimary">#FF1C1D22</item>
         <item name="android:textColorSecondary">#B31C1D22</item>
     </style>

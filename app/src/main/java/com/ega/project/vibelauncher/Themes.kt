@@ -1,6 +1,7 @@
 package com.ega.project.vibelauncher
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.RenderEffect
@@ -8,9 +9,11 @@ import android.graphics.Shader
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.view.View
 import android.view.ViewOutlineProvider
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import eightbitlab.com.blurview.BlurView
 
@@ -136,6 +139,105 @@ object Themes {
         view.setBlurEnabled(blurOn)
         if (blurOn) view.setBlurRadius(blurRadius)
     }
+
+    // ------------------------------------------------------------------
+    // Token tema untuk semua layar (Settings, dialog, dsb). Satu sumber warna per tema.
+    // ------------------------------------------------------------------
+
+    /** Warna teks utama. */
+    fun textPrimary(ctx: Context, t: String): Int = when (normalize(t)) {
+        GLASS_DARK -> Color.WHITE
+        GLASS_LIGHT -> 0xFF181A20.toInt()
+        else -> ContextCompat.getColor(ctx, R.color.md_theme_onSurface)
+    }
+
+    /** Teks di atas warna aksen (mis. segmen terpilih, thumb switch aktif). */
+    fun onAccent(t: String): Int = when (normalize(t)) {
+        GLASS_DARK -> 0xFF111318.toInt()
+        else -> Color.WHITE
+    }
+
+    /** Warna ripple sentuhan. */
+    fun ripple(t: String): Int = when (normalize(t)) {
+        GLASS_DARK -> 0x33FFFFFF
+        GLASS_LIGHT -> 0x2E000000
+        else -> 0x333D75F3
+    }
+
+    /** Garis pemisah tipis. */
+    fun divider(t: String): Int = if (isLight(t)) 0x1A000000 else 0x1AFFFFFF
+
+    /** Track slider / switch yang tidak aktif. */
+    fun trackInactive(t: String): Int = if (isLight(t)) 0x26000000 else 0x33FFFFFF
+
+    /** Latar tile ikon & chip. */
+    fun tileBg(ctx: Context, t: String): Int = when (normalize(t)) {
+        GLASS_DARK -> 0x26FFFFFF
+        GLASS_LIGHT -> 0x14000000
+        else -> ContextCompat.getColor(ctx, R.color.md_theme_primaryContainer)
+    }
+
+    /** Warna ikon di atas [tileBg]. */
+    fun tileFg(ctx: Context, t: String): Int = when (normalize(t)) {
+        GLASS_DARK -> Color.WHITE
+        GLASS_LIGHT -> 0xFF181A20.toInt()
+        else -> ContextCompat.getColor(ctx, R.color.md_theme_onPrimaryContainer)
+    }
+
+    /**
+     * Latar layar Settings. Material: solid. Glass: scrim tipis di atas wallpaper/home yang di-blur window;
+     * kalau blur window tidak tersedia scrim dibuat lebih pekat supaya teks tetap terbaca.
+     */
+    fun settingsScrim(t: String, windowBlur: Boolean): Int = when (normalize(t)) {
+        GLASS_DARK -> if (windowBlur) 0x8C0A0C12.toInt() else 0xEB0A0C12.toInt()
+        GLASS_LIGHT -> if (windowBlur) 0x99F2F5FA.toInt() else 0xF2F2F5FA.toInt()
+        else -> 0xFF111318.toInt()
+    }
+
+    /** Kartu section di Settings. */
+    fun settingsCard(ctx: Context, theme: String, radiusDp: Float): Drawable {
+        val t = normalize(theme)
+        val d = ctx.resources.displayMetrics.density
+        val r = radiusDp * d
+        if (!isGlass(t)) {
+            return GradientDrawable().apply {
+                setColor(ContextCompat.getColor(ctx, R.color.md_theme_surface_variant))
+                cornerRadius = r
+                setStroke((1 * d).toInt().coerceAtLeast(1), 0x1FFFFFFF)
+            }
+        }
+        val light = isLight(t)
+        val base = GradientDrawable().apply {
+            setColor(if (light) 0xB8FFFFFF.toInt() else 0x8014182A.toInt())
+            cornerRadius = r
+        }
+        val sheen = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            if (light) intArrayOf(0x66FFFFFF, 0x00FFFFFF) else intArrayOf(0x22FFFFFF, 0x00FFFFFF)
+        ).apply { cornerRadius = r }
+        val rim = GradientDrawable().apply {
+            setColor(Color.TRANSPARENT)
+            cornerRadius = r
+            setStroke((1.2f * d).toInt().coerceAtLeast(1), if (light) 0xCCFFFFFF.toInt() else 0x40FFFFFF)
+        }
+        return LayerDrawable(arrayOf(base, sheen, rim))
+    }
+
+    /** Latar ripple dengan sudut rounded (tombol ikon, baris yang bisa diketuk). */
+    fun rippleBg(theme: String, radiusDp: Float, density: Float): Drawable {
+        val mask = GradientDrawable().apply {
+            setColor(Color.WHITE)
+            cornerRadius = radiusDp * density
+        }
+        return RippleDrawable(ColorStateList.valueOf(ripple(theme)), null, mask)
+    }
+
+    /** true kalau blur window (FLAG_BLUR_BEHIND) benar-benar aktif di device ini. */
+    fun crossWindowBlur(ctx: Context): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            try {
+                (ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager).isCrossWindowBlurEnabled
+            } catch (_: Throwable) { false }
 
     /** Terapkan blur hardware pada Android 12+ untuk Real Liquid Glass. */
     fun applyBlurIfSupported(view: View, blurRadius: Float = 32f) {

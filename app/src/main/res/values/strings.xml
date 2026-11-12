@@ -53,4 +53,37 @@
     <string name="default_message">Make VibeLauncher your home screen so the Home button opens it.</string>
     <string name="default_set">Set as default</string>
     <string name="not_now">Not now</string>
+
+    <!-- Settings (redesign) -->
+    <string name="back">Back</string>
+    <string name="section_general">General</string>
+    <string name="section_personalize">Personalize</string>
+    <string name="section_about">About</string>
+    <string name="appearance">Appearance</string>
+    <string name="appearance_desc">Theme and blur effect</string>
+    <string name="layout_title">Home &amp; drawer</string>
+    <string name="layout_desc">Grid size of the home screen and app drawer</string>
+    <string name="dock_desc">Dock layout and search bar</string>
+    <string name="interaction">Interaction</string>
+    <string name="interaction_desc">Haptic feedback</string>
+    <string name="section_theme">Theme</string>
+    <string name="section_blur">Blur effect</string>
+    <string name="section_home">Home screen</string>
+    <string name="section_drawer">App drawer</string>
+    <string name="section_dock">Dock</string>
+    <string name="section_search">Search bar</string>
+    <string name="section_feedback">Feedback</string>
+    <string name="theme_desc">Pick a visual style. It is applied everywhere: home, drawer, dialogs and settings.</string>
+    <string name="theme_material_short">Material</string>
+    <string name="theme_glass_dark_short">Glass Dark</string>
+    <string name="theme_glass_light_short">Glass Light</string>
+    <string name="label_columns">Columns</string>
+    <string name="label_rows">Rows</string>
+    <string name="blur_strength_label">Strength</string>
+    <string name="blur_only_glass">Blur is only available with the Liquid Glass themes.</string>
+    <string name="search_builtin_short">Built-in</string>
+    <string name="search_google_short">Google</string>
+    <string name="haptics_hint">Subtle vibration when dragging, snapping and tapping</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_tagline" translatable="false">Material Design &amp; Real Liquid Glass</string>
 </resources>

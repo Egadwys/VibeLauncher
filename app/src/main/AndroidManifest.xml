@@ -59,9 +59,9 @@
             android:theme="@style/Theme.HoloSettings" />
 
         <activity
-            android:name=".CustomizeActivity"
+            android:name=".SettingsPageActivity"
             android:exported="false"
-            android:label="@string/customize"
+            android:label="@string/settings"
             android:theme="@style/Theme.HoloSettings" />
     </application>
 </manifest>
