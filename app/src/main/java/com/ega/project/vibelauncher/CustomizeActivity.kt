@@ -1,8 +1,10 @@
 package com.ega.project.vibelauncher
 
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
+import android.widget.Button
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.RadioGroup
@@ -48,7 +50,9 @@ class CustomizeActivity : AppCompatActivity() {
         fun enableBlurUi(on: Boolean) { sliderBlur.isEnabled = on; labelBlur.alpha = if (on) 1f else 0.4f }
         swBlur.isChecked = p.blurEnabled
         enableBlurUi(p.blurEnabled)
-        swBlur.setOnCheckedChangeListener { _, on -> p.blurEnabled = on; enableBlurUi(on) }
+        swBlur.setOnCheckedChangeListener { _, on -> p.blurEnabled = on; enableBlurUi(on); updateAccessUi() }
+        findViewById<Button>(R.id.btn_blur_access).setOnClickListener { WallpaperAccess.request(this) }
+        updateAccessUi()
 
         val swHaptics = findViewById<SwitchMaterial>(R.id.switch_haptics)
         swHaptics.isChecked = p.haptics
@@ -64,6 +68,22 @@ class CustomizeActivity : AppCompatActivity() {
         enableGroup(p.dockTwoRows)
         sw.setOnCheckedChangeListener { _, on -> p.dockTwoRows = on; enableGroup(on) }
         group.setOnCheckedChangeListener { _, id -> p.dockSearchGoogle = id == R.id.radio_search_google }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateAccessUi() // setelah balik dari layar izin
+    }
+
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(code, perms, results)
+        updateAccessUi()
+    }
+
+    /** Info + tombol izin wallpaper: tampil kalau blur nyala tapi wallpaper belum bisa dibaca. */
+    private fun updateAccessUi() {
+        val need = Prefs(this).blurEnabled && !WallpaperAccess.granted(this)
+        findViewById<View>(R.id.blur_access_box).visibility = if (need) View.VISIBLE else View.GONE
     }
 
     private fun bind(labelId: Int, sliderId: Int, fmt: Int, initial: Int, save: (Int) -> Unit) {

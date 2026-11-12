@@ -473,6 +473,14 @@ class MainActivity : AppCompatActivity() {
             wallpaperBg.setImageDrawable(null)
             return
         }
+        if (!WallpaperAccess.granted(this)) {
+            Log.w("VibeBlur", "Tidak ada akses wallpaper -> BlurView mati (aktifkan di Kustomisasi)")
+            wallpaperReady = false
+            loadedWallpaperId = Int.MIN_VALUE
+            blurTarget.visibility = View.GONE
+            wallpaperBg.setImageDrawable(null)
+            return
+        }
         val wm = WallpaperManager.getInstance(this)
         val id = if (Build.VERSION.SDK_INT >= 24) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else Int.MIN_VALUE + 1
         if (wallpaperReady && id == loadedWallpaperId && Build.VERSION.SDK_INT >= 24) {

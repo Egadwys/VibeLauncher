@@ -142,6 +142,29 @@
                     app:thumbColor="@color/md_theme_primary"
                     app:trackColorActive="@color/md_theme_primary"
                     app:trackColorInactive="#33FFFFFF" />
+
+                <LinearLayout
+                    android:id="@+id/blur_access_box"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/blur_access_needed"
+                        android:textColor="@color/md_theme_onSurfaceVariant"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btn_blur_access"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/blur_access_grant" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

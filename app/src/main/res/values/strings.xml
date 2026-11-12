@@ -41,6 +41,8 @@
     <string name="haptics">Haptic feedback</string>
     <string name="blur_enable">Blur background (Liquid Glass)</string>
     <string name="blur_hint">Only applies to the Liquid Glass themes. Turn off to save battery.</string>
+    <string name="blur_access_needed">To blur your wallpaper, Android 13+ requires "All files access" for this app. Without it the blur stays off.</string>
+    <string name="blur_access_grant">Allow wallpaper access</string>
     <string name="blur_strength">Blur strength: %1$d</string>
     <string name="search_apps">Search apps</string>
     <string name="play_store">Play Store</string>
