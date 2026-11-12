@@ -2,6 +2,7 @@ package com.ega.project.vibelauncher
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -10,7 +11,7 @@ import android.widget.FrameLayout
 
 /**
  * Grid home screen: tiap child punya HomeItem di `tag` (kolom, baris, span).
- * Menggambar highlight area tujuan saat drag.
+ * Menggambar highlight area tujuan saat drag dengan estetika Material / Liquid Glass.
  */
 class HomeGridLayout @JvmOverloads constructor(ctx: Context, attrs: AttributeSet? = null) :
     FrameLayout(ctx, attrs) {
@@ -19,10 +20,21 @@ class HomeGridLayout @JvmOverloads constructor(ctx: Context, attrs: AttributeSet
     var rows = 5
 
     private var hl: RectF? = null
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x3333B5E5 }
+    private val d = resources.displayMetrics.density
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x2A3D75F3 }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x9933B5E5.toInt(); style = Paint.Style.STROKE
-        strokeWidth = 2 * resources.displayMetrics.density
+        color = 0x803D75F3.toInt()
+        style = Paint.Style.STROKE
+        strokeWidth = 2 * d
+    }
+
+    fun setHighlightColor(accentColor: Int) {
+        val r = Color.red(accentColor)
+        val g = Color.green(accentColor)
+        val b = Color.blue(accentColor)
+        fill.color = Color.argb(0x28, r, g, b)
+        stroke.color = Color.argb(0x88, r, g, b)
+        invalidate()
     }
 
     val cellWidth: Float get() = (width - paddingLeft - paddingRight) / cols.toFloat()
@@ -64,7 +76,8 @@ class HomeGridLayout @JvmOverloads constructor(ctx: Context, attrs: AttributeSet
     }
 
     fun showHighlight(col: Int, row: Int, sx: Int, sy: Int) {
-        val cw = cellWidth; val ch = cellHeight
+        val cw = cellWidth
+        val ch = cellHeight
         hl = RectF(
             paddingLeft + col * cw + 4, paddingTop + row * ch + 4,
             paddingLeft + (col + sx) * cw - 4, paddingTop + (row + sy) * ch - 4
@@ -73,13 +86,16 @@ class HomeGridLayout @JvmOverloads constructor(ctx: Context, attrs: AttributeSet
     }
 
     fun clearHighlight() {
-        if (hl != null) { hl = null; invalidate() }
+        if (hl != null) {
+            hl = null
+            invalidate()
+        }
     }
 
     override fun dispatchDraw(canvas: Canvas) {
         super.dispatchDraw(canvas)
         hl?.let {
-            val rad = 14 * resources.displayMetrics.density
+            val rad = 18 * d
             canvas.drawRoundRect(it, rad, rad, fill)
             canvas.drawRoundRect(it, rad, rad, stroke)
         }

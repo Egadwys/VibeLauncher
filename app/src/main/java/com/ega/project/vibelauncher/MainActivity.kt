@@ -278,8 +278,15 @@ class MainActivity : AppCompatActivity() {
         super.onStop()
     }
 
+    private var currentThemeKey = ""
+
     override fun onResume() {
         super.onResume()
+        val t = Themes.normalize(prefs.theme)
+        if (currentThemeKey.isNotEmpty() && Themes.isGlass(currentThemeKey) != Themes.isGlass(t)) {
+            loadApps()
+        }
+        currentThemeKey = t
         render() // terapkan ulang setelah kembali dari Settings
     }
 
@@ -292,7 +299,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- data & render ----------
     private fun loadApps() {
         executor.execute {
-            val list = AppRepository.load(this, false)
+            val list = AppRepository.load(this, Themes.isGlass(prefs.theme))
             runOnUiThread { apps = list; appsLoaded = true; renderHome(); renderDock(); bindPlayStore() }
         }
     }
@@ -305,49 +312,63 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- tema ----------
-    /** Tema (Holo / Liquid) hanya berlaku untuk dock. Drawer & elemen lain selalu Holo gelap. */
+    /** Terapkan styling Material Design & Real Liquid Glass secara menyeluruh. */
     private fun applyTheme() {
-        val t = prefs.theme
+        val t = Themes.normalize(prefs.theme)
         val glass = Themes.isGlass(t)
         val light = Themes.isLight(t)
         val d = resources.displayMetrics.density
+        val accent = Themes.accent(this, t)
 
-        fun holoSearch(tv: TextView) {
-            tv.setBackgroundResource(R.drawable.bg_search)
-            tv.setTextColor(0xB3FFFFFF.toInt())
-            TextViewCompat.setCompoundDrawableTintList(tv, null)
+        fun styleSearch(tv: TextView) {
+            tv.background = Themes.panel(this, t, 28f)
+            val textColor = if (glass && light) 0xFF181A20.toInt() else 0xE6FFFFFF.toInt()
+            tv.setTextColor(textColor)
+            TextViewCompat.setCompoundDrawableTintList(tv, ColorStateList.valueOf(textColor))
         }
-        holoSearch(searchTop as TextView)
-        if (glass) { // search bar di dalam dock ikut tema dock
-            val searchText = if (light) 0x99000000.toInt() else 0xCCFFFFFF.toInt()
-            val tv = searchDock as TextView
-            tv.background = Themes.glassPanel(this, light, 24f)
-            tv.setTextColor(searchText)
-            TextViewCompat.setCompoundDrawableTintList(tv, ColorStateList.valueOf(searchText))
-        } else holoSearch(searchDock as TextView)
+        styleSearch(searchTop as TextView)
+        styleSearch(searchDock as TextView)
 
-        // Dock: panel melayang bersudut membulat (Holo & Liquid berbagi bentuk yang sama)
+        // Dock: panel melayang capsule Material / Real Liquid Glass
         val dock = findViewById<View>(R.id.dock)
         val lp = dock.layoutParams as ViewGroup.MarginLayoutParams
-        val m = (12 * d).toInt()
-        lp.setMargins(m, 0, m, (10 * d).toInt())
+        val m = (16 * d).toInt()
+        lp.setMargins(m, 0, m, (12 * d).toInt())
         dock.layoutParams = lp
-        dock.background = if (glass) Themes.glassPanel(this, light, 30f) else Themes.holoPanel(this, 30f)
+        dock.background = Themes.panel(this, t, 32f)
         findViewById<View>(R.id.dock_divider).visibility = View.GONE
 
-        // Drawer: selalu Holo gelap
-        val accent = Themes.accent(this, Themes.HOLO)
-        drawer.setBackgroundColor(Themes.drawerBg(Themes.HOLO, false))
-        findViewById<TextView>(R.id.drawer_title).setTextColor(accent)
-        findViewById<View>(R.id.drawer_underline).setBackgroundColor(accent)
-        findViewById<View>(R.id.drawer_divider).setBackgroundColor(ContextCompat.getColor(this, R.color.holo_line))
-        findViewById<TextView>(R.id.drawer_overflow).setTextColor(0xFFFFFFFF.toInt())
+        // Tombol All Apps di dock
+        val btnApps = findViewById<ImageView>(R.id.btn_apps)
+        btnApps.imageTintList = ColorStateList.valueOf(if (glass && light) 0xFF181A20.toInt() else Color.WHITE)
 
-        // Bar target drag
-        findViewById<View>(R.id.drag_bar).setBackgroundColor(Themes.dragBarBg(Themes.HOLO))
-        for (id in listOf(R.id.drag_remove, R.id.drag_info, R.id.drag_uninstall))
-            findViewById<TextView>(id).setTextColor(accent)
+        // Drawer: latar belakang dan aksen Material / Liquid Glass
+        val hasBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        drawer.setBackgroundColor(Themes.drawerBg(t, hasBlur))
+        val titleColor = if (glass && light) 0xFF181A20.toInt() else Color.WHITE
+        findViewById<TextView>(R.id.drawer_title).setTextColor(titleColor)
+        findViewById<View>(R.id.drawer_underline).apply {
+            setBackgroundColor(accent)
+            visibility = if (glass) View.GONE else View.VISIBLE
+        }
+        findViewById<View>(R.id.drawer_divider).setBackgroundColor(if (glass && light) 0x1A000000 else 0x1AFFFFFF)
+        findViewById<TextView>(R.id.drawer_overflow).setTextColor(titleColor)
+        drawerSearchBtn.imageTintList = ColorStateList.valueOf(titleColor)
+        drawerSearch.setTextColor(titleColor)
+        drawerSearch.setHintTextColor(if (glass && light) 0x80181A20.toInt() else 0x80FFFFFF.toInt())
+        drawerSearch.background = Themes.panel(this, t, 22f)
 
+        // Bar target drag: floating capsule di atas
+        val dragBar = findViewById<View>(R.id.drag_bar)
+        dragBar.background = Themes.panel(this, t, 30f)
+        val dragActionColor = if (glass && light) 0xFF181A20.toInt() else Color.WHITE
+        for (id in listOf(R.id.drag_remove, R.id.drag_info, R.id.drag_uninstall)) {
+            val tv = findViewById<TextView>(id)
+            tv.setTextColor(dragActionColor)
+            TextViewCompat.setCompoundDrawableTintList(tv, ColorStateList.valueOf(dragActionColor))
+        }
+
+        homeGrid.setHighlightColor(accent)
         updateSystemBars()
     }
 
@@ -385,7 +406,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun appCell(app: AppInfo, item: HomeItem, cols: Int): View {
-        val v = AppCellView(this, app, cols, false) // tanpa ripple di home screen
+        val v = AppCellView(this, app, cols, false, prefs.theme) // tanpa ripple di home screen
         v.setOnClickListener { launch(app) }
         v.setOnLongClickListener {
             startDrag(it, DragPayload(HomeItem.KIND_APP, app.key, 1, 1, true, item.col, item.row)); true
@@ -499,10 +520,10 @@ class MainActivity : AppCompatActivity() {
     private fun footerView(ctx: Context): TextView {
         val d = resources.displayMetrics.density
         return TextView(ctx).apply {
-            setText(R.string.made_with_claude)
+            setText(R.string.app_name)
             textSize = 12f
             gravity = android.view.Gravity.CENTER
-            alpha = 0.6f
+            alpha = 0.5f
             setTextColor(textColorOf(ctx, android.R.attr.textColorSecondary))
             setPadding(0, (12 * d).toInt(), 0, (14 * d).toInt())
         }
@@ -685,6 +706,7 @@ class MainActivity : AppCompatActivity() {
         val overlay = WidgetResizeOverlay(
             this, homeGrid, live, items.filter { it !== target },
             minSx.coerceIn(1, live.spanX), minSy.coerceIn(1, live.spanY), canH, canV,
+            accentColor = Themes.accent(this, prefs.theme),
             onChanged = { haptic(tickConst()); homeGrid.requestLayout() },
             onDone = { endResize() }
         )
@@ -741,7 +763,11 @@ class MainActivity : AppCompatActivity() {
         v.setOnDragListener { view, e ->
             when (e.action) {
                 DragEvent.ACTION_DRAG_STARTED -> drag != null
-                DragEvent.ACTION_DRAG_ENTERED -> { view.setBackgroundColor(0x5533B5E5); true }
+                DragEvent.ACTION_DRAG_ENTERED -> {
+                    view.background = Themes.panel(this, prefs.theme, 16f)
+                    haptic(tickConst())
+                    true
+                }
                 DragEvent.ACTION_DRAG_EXITED -> { view.background = null; true }
                 DragEvent.ACTION_DROP -> { view.background = null; drag?.let(action) ?: false }
                 DragEvent.ACTION_DRAG_ENDED -> { view.background = null; onDragEnded(e.result); true }
@@ -935,16 +961,21 @@ class MainActivity : AppCompatActivity() {
         drawerOpen = true
         lastDrawerPage = 0
         resetDrawerSearch()
+        val t = Themes.normalize(prefs.theme)
+        if (Themes.isGlass(t)) {
+            Themes.applyBlurIfSupported(homeLayer, 30f)
+        }
         drawer.animate().cancel()
         drawer.alpha = 0f
         drawer.translationY = 60 * resources.displayMetrics.density
         drawer.visibility = View.VISIBLE
         updateSystemBars()
         drawer.animate().alpha(1f).translationY(0f).setDuration(220).start()
-        // Home (termasuk dock) disembunyikan supaya tidak tembus di balik drawer
+        // Home (termasuk dock) disembunyikan / difilter supaya transparan indah
         homeLayer.animate().cancel()
-        homeLayer.animate().alpha(0f).setDuration(220).withEndAction {
-            if (drawerOpen) homeLayer.visibility = View.INVISIBLE
+        val targetAlpha = if (Themes.isGlass(t)) 0.15f else 0f
+        homeLayer.animate().alpha(targetAlpha).setDuration(220).withEndAction {
+            if (drawerOpen && !Themes.isGlass(t)) homeLayer.visibility = View.INVISIBLE
         }.start()
         drawerPager.doOnLayout { buildDrawer() }
     }
@@ -958,7 +989,8 @@ class MainActivity : AppCompatActivity() {
         val cellH = (cellW * 1.15f).toInt()
         val rows = max(1, h / cellH)
         val pages = drawerResults().chunked(cols * rows)
-        drawerPager.adapter = DrawerPagerAdapter(pages, cols, cellW, cellH, ::launch, ::showDrawerMenu, ::startDragFromDrawer, Themes.HOLO)
+        val t = Themes.normalize(prefs.theme)
+        drawerPager.adapter = DrawerPagerAdapter(pages, cols, cellW, cellH, ::launch, ::showDrawerMenu, ::startDragFromDrawer, t)
         drawerPager.setCurrentItem(0, false)
         buildDots(pages.size)
     }
@@ -1003,20 +1035,36 @@ class MainActivity : AppCompatActivity() {
     private fun buildDots(n: Int) {
         drawerDots.removeAllViews()
         val d = resources.displayMetrics.density
-        val size = (8 * d).toInt(); val m = (4 * d).toInt()
         for (i in 0 until n) {
             val dot = View(this)
-            dot.layoutParams = LinearLayout.LayoutParams(size, size).apply { setMargins(m, 0, m, 0) }
+            val lp = LinearLayout.LayoutParams((6 * d).toInt(), (6 * d).toInt()).apply {
+                setMargins((4 * d).toInt(), 0, (4 * d).toInt(), 0)
+            }
+            dot.layoutParams = lp
             drawerDots.addView(dot)
         }
         updateDots(0)
     }
 
     private fun updateDots(selected: Int) {
+        val d = resources.displayMetrics.density
+        val t = Themes.normalize(prefs.theme)
+        val activeColor = Themes.accent(this, t)
+        val dimColor = Themes.dim(t)
         for (i in 0 until drawerDots.childCount) {
-            drawerDots.getChildAt(i).background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(if (i == selected) Themes.accent(this@MainActivity, Themes.HOLO) else Themes.dim(Themes.HOLO))
+            val dot = drawerDots.getChildAt(i)
+            val isSelected = i == selected
+            val targetW = if (isSelected) (18 * d).toInt() else (6 * d).toInt()
+            val targetH = (6 * d).toInt()
+            val lp = dot.layoutParams as LinearLayout.LayoutParams
+            if (lp.width != targetW || lp.height != targetH) {
+                lp.width = targetW
+                lp.height = targetH
+                dot.layoutParams = lp
+            }
+            dot.background = GradientDrawable().apply {
+                cornerRadius = 3 * d
+                setColor(if (isSelected) activeColor else dimColor)
             }
         }
     }
@@ -1025,6 +1073,7 @@ class MainActivity : AppCompatActivity() {
         if (drawer.visibility != View.VISIBLE || !drawerOpen) return
         drawerOpen = false
         resetDrawerSearch()
+        Themes.clearBlur(homeLayer)
         updateSystemBars()
         homeLayer.animate().cancel()
         homeLayer.visibility = View.VISIBLE
@@ -1037,21 +1086,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- popup & dialog: bulat, mengikuti tema ----------
-    private fun popupCtx() = ContextThemeWrapper(this, when (prefs.theme) {
+    private fun popupCtx() = ContextThemeWrapper(this, when (Themes.normalize(prefs.theme)) {
         Themes.GLASS_DARK -> R.style.PopupOverlay_GlassDark
         Themes.GLASS_LIGHT -> R.style.PopupOverlay_GlassLight
-        else -> R.style.PopupOverlay_Holo
+        else -> R.style.PopupOverlay_Material
     })
 
-    private fun dialogRes() = when (prefs.theme) {
+    private fun dialogRes() = when (Themes.normalize(prefs.theme)) {
         Themes.GLASS_DARK -> R.style.Dialog_GlassDark
         Themes.GLASS_LIGHT -> R.style.Dialog_GlassLight
-        else -> R.style.Dialog_Holo
+        else -> R.style.Dialog_Material
     }
 
     // ---------- status bar ----------
-    /** Drawer selalu gelap, jadi ikon status bar selalu putih. */
+    /** Sesuaikan ikon status bar dengan tema (terang / gelap). */
     private fun updateSystemBars() {
+        val c = WindowInsetsControllerCompat(window, window.decorView)
+        val t = Themes.normalize(prefs.theme)
+        val isLight = drawerOpen && Themes.isLight(t)
+        c.isAppearanceLightStatusBars = isLight
+        c.isAppearanceLightNavigationBars = isLight
+    }
         val c = WindowInsetsControllerCompat(window, window.decorView)
         c.isAppearanceLightStatusBars = false
         c.isAppearanceLightNavigationBars = false
@@ -1080,7 +1135,7 @@ class MainActivity : AppCompatActivity() {
                 when (e.action) {
                     DragEvent.ACTION_DRAG_STARTED -> drag?.kind == HomeItem.KIND_APP
                     DragEvent.ACTION_DRAG_ENTERED -> {
-                        view.background = Themes.glassPanel(this, Themes.isLight(prefs.theme), 18f)
+                        view.background = Themes.panel(this, prefs.theme, 18f)
                         haptic(tickConst()); true
                     }
                     DragEvent.ACTION_DRAG_EXITED -> { view.background = null; true }

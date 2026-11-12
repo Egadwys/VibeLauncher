@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.ImageView
 import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
@@ -16,20 +17,26 @@ class CustomizeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_customize)
         val p = Prefs(this)
+
+        findViewById<ImageView>(R.id.btn_back)?.setOnClickListener { finish() }
+
         bind(R.id.label_home_cols, R.id.slider_home_cols, R.string.home_columns, p.homeCols) { p.homeCols = it }
         bind(R.id.label_home_rows, R.id.slider_home_rows, R.string.home_rows, p.homeRows) { p.homeRows = it }
         bind(R.id.label_drawer_cols, R.id.slider_drawer_cols, R.string.drawer_columns, p.drawerCols) { p.drawerCols = it }
 
-        val themeIds = listOf(Themes.HOLO, Themes.GLASS_DARK, Themes.GLASS_LIGHT)
-        val themeNames = listOf(R.string.theme_holo, R.string.theme_glass_dark, R.string.theme_glass_light)
+        val themeIds = listOf(Themes.MATERIAL, Themes.GLASS_DARK, Themes.GLASS_LIGHT)
+        val themeNames = listOf(R.string.theme_material, R.string.theme_glass_dark, R.string.theme_glass_light)
             .map { getString(it) }
         val spinner = findViewById<Spinner>(R.id.spinner_theme)
         spinner.adapter = ArrayAdapter(this, R.layout.spinner_item, themeNames).apply {
             setDropDownViewResource(R.layout.spinner_dropdown_item)
         }
-        spinner.setSelection(themeIds.indexOf(p.theme).coerceAtLeast(0))
+        val currentTheme = Themes.normalize(p.theme)
+        spinner.setSelection(themeIds.indexOf(currentTheme).coerceAtLeast(0))
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, v: View?, pos: Int, id: Long) { p.theme = themeIds[pos] }
+            override fun onItemSelected(parent: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                p.theme = themeIds[pos]
+            }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 

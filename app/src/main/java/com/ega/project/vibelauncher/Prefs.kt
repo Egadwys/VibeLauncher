@@ -20,7 +20,7 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putInt("drawer_cols", v).apply()
 
     var theme: String
-        get() = sp.getString("theme", Themes.HOLO) ?: Themes.HOLO
+        get() = Themes.normalize(sp.getString("theme", Themes.MATERIAL) ?: Themes.MATERIAL)
         set(v) = sp.edit().putString("theme", v).apply()
 
     /** Dock dua baris: baris bawah berisi search bar / widget Google Search. */

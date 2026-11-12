@@ -2,6 +2,7 @@ package com.ega.project.vibelauncher
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
@@ -12,6 +13,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
         defaultStatus = findViewById(R.id.default_launcher_status)
+        findViewById<ImageView>(R.id.btn_back)?.setOnClickListener { finish() }
         findViewById<android.view.View>(R.id.item_default_launcher).setOnClickListener { chooseDefaultLauncher() }
         findViewById<android.view.View>(R.id.item_customize).setOnClickListener {
             startActivity(Intent(this, CustomizeActivity::class.java))

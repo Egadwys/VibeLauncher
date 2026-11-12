@@ -1,7 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="holo_blue">#33B5E5</color>
-    <color name="holo_blue_dark">#0099CC</color>
-    <color name="holo_bg">#101010</color>
-    <color name="holo_line">#33FFFFFF</color>
+    <!-- Modern Material 3 Color Palette -->
+    <color name="md_theme_primary">#3D75F3</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#1E2B4D</color>
+    <color name="md_theme_onPrimaryContainer">#D7E2FF</color>
+    <color name="md_theme_secondary">#5594F7</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_surface">#111318</color>
+    <color name="md_theme_surface_variant">#1A1D24</color>
+    <color name="md_theme_surface_container">#1E222B</color>
+    <color name="md_theme_onSurface">#E2E2E6</color>
+    <color name="md_theme_onSurfaceVariant">#99A1B3</color>
+    <color name="md_theme_outline">#303442</color>
+    <color name="md_theme_outline_variant">#242732</color>
+
+    <!-- Real Liquid Glass Tokens -->
+    <color name="glass_surface_dark">#38141720</color>
+    <color name="glass_surface_light">#59FFFFFF</color>
+    <color name="glass_border_dark">#4DFFFFFF</color>
+    <color name="glass_border_light">#99FFFFFF</color>
+    <color name="glass_highlight">#66FFFFFF</color>
+
+    <!-- Compatibility aliases -->
+    <color name="holo_blue">@color/md_theme_primary</color>
+    <color name="holo_blue_dark">#2956CC</color>
+    <color name="holo_bg">@color/md_theme_surface</color>
+    <color name="holo_line">#1AFFFFFF</color>
 </resources>

@@ -7,9 +7,11 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
 
-/** Membuat semua ikon menjadi rounded-square yang seragam (sentuhan Material). */
+/**
+ * Membentuk ikon menjadi Material squircle seragam dengan efek Real Liquid Glass opsional.
+ */
 object IconShaper {
-    private const val CORNER = 0.26f // rasio radius terhadap ukuran ikon
+    private const val CORNER = 0.27f // Rasio squircle modern
 
     fun shape(res: Resources, src: Drawable, size: Int, glass: Boolean = false): Drawable {
         val s = size.toFloat()
@@ -17,15 +19,16 @@ object IconShaper {
         val c = Canvas(content)
 
         if (Build.VERSION.SDK_INT >= 26 && src is AdaptiveIconDrawable) {
-            // Layer adaptive berukuran 108dp, area terlihat 72dp -> inset 25% tiap sisi
+            // Adaptive icon: inset 25% agar area utama tepat di dalam squircle
             val inset = (s * 0.25f).toInt()
-            val l = -inset; val r = size + inset
+            val l = -inset
+            val r = size + inset
             src.background?.let { it.setBounds(l, l, r, r); it.draw(c) }
             src.foreground?.let { it.setBounds(l, l, r, r); it.draw(c) }
         } else {
-            // Ikon legacy: taruh di atas tile terang agar bentuknya seragam
-            c.drawColor(0xFFECEFF1.toInt())
-            val pad = (s * 0.14f).toInt()
+            // Legacy icon: diletakkan di atas tile surface modern
+            c.drawColor(0xFF222630.toInt())
+            val pad = (s * 0.15f).toInt()
             src.setBounds(pad, pad, size - pad, size - pad)
             src.draw(c)
         }
@@ -34,23 +37,37 @@ object IconShaper {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = BitmapShader(content, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
         }
-        Canvas(out).drawRoundRect(RectF(0f, 0f, s, s), s * CORNER, s * CORNER, paint)
+        val r = s * CORNER
+        val canvasOut = Canvas(out)
+        canvasOut.drawRoundRect(RectF(0f, 0f, s, s), r, r, paint)
+
         if (glass) {
-            // Liquid glass: kilau di bagian atas + tepi terang tipis
-            val c2 = Canvas(out)
-            val r = s * CORNER
+            // Real Liquid Glass: kilau specular miring dari sudut atas-kiri + border bevel kaca
             val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = LinearGradient(0f, 0f, 0f, s * 0.6f, 0x55FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
+                shader = LinearGradient(
+                    0f, 0f, s * 0.7f, s * 0.7f,
+                    intArrayOf(0x55FFFFFF, 0x1AFFFFFF, 0x00FFFFFF),
+                    floatArrayOf(0f, 0.45f, 1f),
+                    Shader.TileMode.CLAMP
+                )
             }
-            c2.drawRoundRect(RectF(0f, 0f, s, s), r, r, gloss)
+            canvasOut.drawRoundRect(RectF(0f, 0f, s, s), r, r, gloss)
+
+            // Bevel rim kaca
             val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = s * 0.03f
-                shader = LinearGradient(0f, 0f, s, s, 0xCCFFFFFF.toInt(), 0x22FFFFFF, Shader.TileMode.CLAMP)
+                strokeWidth = s * 0.035f
+                shader = LinearGradient(
+                    0f, 0f, s, s,
+                    intArrayOf(0x80FFFFFF.toInt(), 0x30FFFFFF, 0x10FFFFFF),
+                    floatArrayOf(0f, 0.5f, 1f),
+                    Shader.TileMode.CLAMP
+                )
             }
             val inset = edge.strokeWidth / 2f
-            c2.drawRoundRect(RectF(inset, inset, s - inset, s - inset), r, r, edge)
+            canvasOut.drawRoundRect(RectF(inset, inset, s - inset, s - inset), r, r, edge)
         }
+
         return BitmapDrawable(res, out)
     }
 }
